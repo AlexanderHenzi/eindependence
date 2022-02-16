@@ -26,6 +26,18 @@ generate_X_CPT_gaussian = function(nstep,M,X0,mu,sig2){
   return(t(X_mat))
 }
 
+generate_X_CPT_logistic = function(nstep,M,X0,mu,sig2){
+  # Runs the conditional permutation test using the distribution X | Z=Z[i] ~ Ber(1/(1+exp(-mu)))
+  
+  log_lik_mat = -X0%*%t(log(1+exp(-mu)))-(1-X0)%*%t(log(exp(mu)+1))
+  print(exp(log_lik_mat))
+  # log_lik_mat[i,j] = density at X=X0[i] when Z=Z[j]
+  Pi_mat = generate_X_CPT(nstep,M,log_lik_mat)
+  X_mat = X0[Pi_mat]
+  dim(X_mat) = c(M,length(X0))
+  return(t(X_mat))
+}
+
 generate_X_CPT = function(nstep,M,log_lik_mat,Pi_init=NULL){
   # log_lik_mat is the n-by-n matrix with entries log(q(X_i|Z_j))
   # this function produces M exchangeable permutations, initialized with permutation Pi_init
@@ -64,34 +76,18 @@ generate_XYZ = function(type,param,a){
   #a = rnorm(p)/p; b = rnorm(p)
   b=rnorm(p)
   Z = matrix(rnorm(n*p),n,p)
-  if(param==0 | type=='power'){
+  if(type=='gaussian'){
     X = Z%*%b + rnorm(n)
     Y = Z%*%a + X*param + rnorm(n)
-  }else{
-    if(type=='quadratic'){
-      X = Z%*%b + param * (Z%*%b)^2 + rnorm(n)
-    }
-    if(type=='cubic'){
-      X = Z%*%b - param * (Z%*%b)^3 + rnorm(n)
-    }
-    if(type=='tanh'){
-      X = tanh(param*(Z%*%b))/param + rnorm(n)
-    }
-    if(type=='t'){
-      X = Z%*%b + rt(n,1/param)*sqrt(1-2*param)
-    }
-    if(type=='skewnormal'){
-      X = Z%*%b + (skewnormal(n,param)-sqrt(2/pi)*param/
-                     sqrt(1+param^2))/sqrt(1-2/pi*param^2/(1+param^2))
-    }
-    if(type=='heteroskedastic'){
-      X = Z%*%b +  rnorm(dim(Z)[1]) * abs(Z%*%b)^theta / 
-        (sum(b^2))^(theta/2) / sqrt((2^theta)*gamma(theta+0.5)/sqrt(pi))
-    }
-    Y = Z%*%a + rnorm(n)
+    X_CPT = generate_X_CPT_gaussian(nstep,M,X,Z%*%b,rep(1,n))
+  } else if(type=='logistic') {
+    # Problem that Y here is a vector and above matrix?
+    X = rbinom(n, 1, 1/(1+exp(-Z%*%b)))
+    Y = rbinom(n, 1, 1/(1+exp(-Z%*%a-param*X)))
+    X_CPT = generate_X_CPT_logistic(nstep,M,X,Z%*%b)
+  } else {
+    stop("Specify a correct data generation type!") 
   }
-  X_CPT = generate_X_CPT_gaussian(nstep,M,X,Z%*%b,rep(1,n))
-  
   # Below is just a fancy way of writing (X = Z%*%b + rnorm(n)) M times.
   # That is, (Z%*%b)%*%t(rep(1,M)) gives a matrix with Z%*%b in each column. 
   # Then we add a random uniform matrix for the randomisation.
@@ -113,9 +109,26 @@ skewnormal = function(n,theta){
 }
 
 ############# Simulations under the alternative (testing power) #################
-alpha = 0.05; nrep = 10; n = 50; p = 20; M = 1000; nstep = 50
+#alpha = 0.05; nrep = 1000; n = 50; p = 20; M = 1000; nstep = 50
+alpha = 0.05; nrep = 10; n = 100; p = 20; M = 1000; nstep = 50
+density_type = "logistic"
 
-cs = seq(0, 0.7, 0.1)
+# This function can/should be optimized:
+if (density_type == "gaussian") {
+  dens = function(x, Y, Z, a, c) { 
+    return(dmvnorm(Y[,1], mean=(Z%*%a+c*x)[,1],sigma=diag(dim(Y)[1])))
+  } 
+} else if (density_type == "logistic") {
+  dens = function(x, Y, Z, a, c) {
+    pr = 1/(1+exp(-Z%*%a-c*x))
+    return(prod(pr^Y*(1-pr)^(1-Y)))
+  } 
+} else {
+  stop("Specify a correct density type.")
+}
+
+#cs = seq(0, 0.7, 0.1)
+cs = seq(0,1,0.1) 
 
 cl <- length(cs)
 true_cor <- matrix(nrow = cl, ncol = nrep)
@@ -132,12 +145,14 @@ for(ic in 1:length(cs)){
   cordens <-
     foreach(irep = 1:nrep, .inorder = FALSE, .packages = c('mvtnorm', 'FOCI' )) %dopar% {
       a = rnorm(p)/p
-      XYZ = generate_XYZ('power',c,a)
+      XYZ = generate_XYZ(density_type,c,a)
       X = XYZ$X; Y = XYZ$Y; Z = XYZ$Z; X_CPT = XYZ$X_CPT
       t_c <- c(abs(cor(X,Y)))
       cpt_c <- c(abs(cor(X_CPT,Y)))
-      t_d <- dmvnorm(Y[,1], mean=(Z%*%a+c*X)[,1],sigma=diag(dim(Y)[1]))
-      cpt_d <- apply(X_CPT, MARGIN=2, FUN = function(x) dmvnorm(Y[,1], mean=(Z%*%a+c*x)[,1],sigma=diag(dim(Y)[1])))
+    
+      t_d <- dens(X, Y, Z, a, c)
+      cpt_d <- apply(X_CPT,MARGIN=2,FUN=function(x) dens(x,Y,Z,a,c))
+      
       #t_codec <- codec(Y,X,Z)
       #cpt_codec <- apply(X_CPT, MARGIN=2, FUN=function(x) codec(Y,x,Z))
       list(t_c, cpt_c, t_d, cpt_d) #t_codec, cpt_codec)
@@ -155,5 +170,5 @@ stopCluster(cluster)
 # Save results for later use...
 save(
   list = c("true_cor", "cpt_cor", "true_dens", "cpt_dens","alpha", "nrep", "n", "p", "cs", "nstep", "M"),
-  file = "Simulation1.rda"
+  file = sprintf("Simulation_%s.rda",density_type)
 )
