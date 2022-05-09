@@ -1,0 +1,530 @@
+#-------------------------------------------------------------------------------
+# packages and global ggplot settings
+library(tidyverse)
+library(ggthemes)
+library(ldbounds)
+library(ggpubr)
+theme_set(theme_bw(base_size = 10))
+
+#-------------------------------------------------------------------------------
+# sample size for different type I error and power
+
+## load functions
+# rm(list = ls())
+source("simulation_functions.R")
+
+## change path below for variations of the simulation example
+load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda")
+
+## remove null entries (a higher number than 800 is generated, to make sure than
+## at least 800 simulations are available when running the computations on the
+## cluster and some of the tasks fail)
+nulls <- sapply(results_logistic_1, is.null)
+sum(nulls)
+results_logistic_1 <- results_logistic_1[!nulls]
+
+## the "epsilon" for the E-CRT. Select the desired value in 0, 0.01, 0.05, 0.1
+eps <- 0.05
+eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
+results_logistic_1 <- lapply(
+  results_logistic_1,
+  function(x) x[-eps_remove]
+)
+
+## the type I level errors to consider; containers for rejection rates of CRT 
+## and LRT (CRT and LRT are computed after each new batch of 25 observations,
+## with a total of 80 batches).
+alphas <- c(0.01, 0.05)
+rejections_crt <- rejections_asymptotic <- 
+  array(dim = c(80, length(alphas), 11), 0)
+
+## compute e-values and rejection times, for each simulation
+for (k in seq_along(results_logistic_1)) {
+  ## extract k-th simulation; store parameters; compute e-values and rejection
+  ## times for all methods
+  tmp <- results_logistic_1[[k]]
+  betap <- tmp$betap
+  id <- tmp$id
+  rejections_k <- vector("list", 6)
+  for (j in seq_len(4)) {
+    e <- cumprod(do.call(get_e, cbind(tmp[[j]], eps = 0)))
+    rejections <- get_first_rejection(e = e, alphas = alphas, tmax = 2000)
+    rejections$method <- names(tmp)[j]
+    rejections_k[[j]] <- rejections
+  }
+  
+  rejections_k <- do.call(rbind, rejections_k[1:4])
+  rejections_k$betap <- betap
+  rejections_k$id <- id
+  results_logistic_1[[k]] <- rejections_k
+  
+  ## compute rejection times for CRT and LRT
+  ind <- which.min(abs(seq(0, 1, 0.1) - betap))
+  rejections_asymptotic[, , ind] <- rejections_asymptotic[, , ind] + 
+    outer(tmp[[5]]$p_asymptotic, alphas, "<=")
+  rejections_crt[, , ind] <- 
+    rejections_crt[, , ind] + outer(tmp[[5]]$p_crt, alphas, "<=")
+}
+results_logistic_1 <- do.call(rbind, results_logistic_1)
+
+## rejections under the null hypothesis (table; all methods except group
+## sequential, which are computed below)
+results_logistic_1 %>%
+  filter(betap == 0) %>%
+  group_by(method, alphas) %>%
+  summarise(rejected = mean(rejected))
+
+## compute sample sizes required for rejecting at given level; "betas" gives
+## the desired power (1 - type II error).
+
+betas <- c(0.8, 0.95)
+df <- results_logistic_1 %>%
+  group_by(method, alphas, betap) %>%
+  nest() %>%
+  mutate(
+    results = map(
+      .x = data,
+      .f = function(dat) {
+        lapply(
+          betas,
+          function(b) find_sample_size(dat$size, dat$rejected, b, 2000)
+        )
+      }
+    )
+  ) %>%
+  unnest(cols = results) %>%
+  unnest(cols = results)
+
+## for LRT and CRT
+rejections_asymptotic <- rejections_asymptotic / 800
+rejections_crt <- rejections_crt / 800
+df_asymptotic <- vector("list", length(betas))
+df_crt <- vector("list", length(betas))
+for (k in seq_along(betas)) {
+  ## for LRT (aymptotic). The "minimum" sample size is searched over the sizes
+  ## 25, 50, ..., 1975, 2000 which are actually available. In the "worst case",
+  ## the actual minimum might be achieved at size 26, 51, ..., so we subtract
+  ## 25 from the result to make sure that the minimum sample size is not
+  ## over-estiamted.
+  tmp <- t(apply(
+    rejections_asymptotic,
+    c(2, 3),
+    function(x) min(which(x >= betas[k]))) * 25
+  )
+  tmp <- cbind(betap = seq(0, 1, 0.1), tmp)
+  colnames(tmp) <- c("betap", alphas)
+  tmp <- as_tibble(tmp)
+  tmp <- gather(tmp, key = "alphas", value = "worst", -betap)
+  tmp$alphas <- as.numeric(tmp$alphas)
+  tmp$method <- "asymptotic"
+  tmp$data <- vector("list", 1)
+  tmp$beta <- betas[k]
+  tmp$average <- Inf
+  tmp$power_achieved <- is.finite(tmp$worst)
+  tmp$worst <- pmin(2000, tmp$worst)
+  df_asymptotic[[k]] <- tmp
+  
+  ## for CRT
+  tmp <- t(apply(
+    rejections_crt,
+    c(2, 3),
+    function(x) pmax(1, min(which(x >= betas[k])) - 1) * 25
+  ))
+  tmp <- cbind(betap = seq(0, 1, 0.1), tmp)
+  colnames(tmp) <- c("betap", alphas)
+  tmp <- as_tibble(tmp)
+  tmp <- gather(tmp, key = "alphas", value = "worst", -betap)
+  tmp$alphas <- as.numeric(tmp$alphas)
+  tmp$method <- "crt"
+  tmp$data <- vector("list", 1)
+  tmp$beta <- betas[k]
+  tmp$average <- Inf
+  tmp$power_achieved <- is.finite(tmp$worst)
+  tmp$worst <- pmin(2000, tmp$worst)
+  df_crt[[k]] <- tmp
+}
+df_asymptotic <- do.call(rbind, df_asymptotic)
+df_crt <- do.call(rbind, df_crt)
+
+## combine all results
+df <- rbind(df,  df_crt, df_asymptotic) %>%
+  gather(key = "type", value = "size", average, worst) %>%
+  filter(!(method %in% c("crt", "asymptotic") & type == "average")) %>%
+  ungroup() %>%
+  mutate(
+    type = factor(
+      type,
+      levels = c("worst", "average"),
+      labels = c("Worst case", "Average")
+    ),
+    method = factor(
+      method,
+      levels = c("asymptotic", "crt", "oracle", paste0("ecrt", eps), "rmle", "rmlep"),
+      labels = c("LRT", "CRT", "O-E-CRT", "E-CRT", "R-MLE", "R-MLE-P"),
+      ordered = TRUE
+    )
+  )
+
+
+## plot  
+simulation_alternative <- ggplot() +
+  geom_point(
+    data = df,
+    aes(
+      x = betap,
+      y = size,
+      color = method,
+      group = interaction(method, type),
+      shape = method
+    ),
+    alpha = 0.2,
+    cex = 2
+  ) +
+  geom_point(
+    data = filter(df, power_achieved),
+    aes(
+      x = betap,
+      y = size,
+      color = method,
+      group = interaction(method, type),
+      shape = method
+    ),
+    cex = 2
+  ) +
+  geom_line(
+    data = df,
+    aes(
+      x = betap,
+      y = size,
+      color = method,
+      group = interaction(method, type),
+      linetype = type
+    ),
+    alpha = 0.2,
+    lwd = 0.5
+  ) +
+  geom_line(
+    data = filter(df, power_achieved),
+    aes(
+      x = betap,
+      y = size,
+      color = method,
+      group = interaction(method, type),
+      linetype = type,
+    ),
+    lwd = 0.5
+  ) +
+  ggthemes::scale_color_colorblind() +
+  scale_linetype_manual(values = c(5, 1)) +
+  facet_grid(rows = vars(alphas), cols = vars(beta)) +
+  labs(
+    x = expression(beta[p]),
+    y = "Sample size",
+    linetype = element_blank(),
+    color = element_blank(),
+    shape = element_blank()
+  ) +
+  theme(legend.position = "bottom") +
+  guides(
+    color = guide_legend(nrow = 2, byrow = TRUE),
+    linetype = guide_legend(nrow = 2, byrow = TRUE)
+  )
+
+## save the plot
+pdf(width = 8, height = 6, file = "simulation_alternative.pdf")
+print(simulation_alternative)
+dev.off()
+
+#-------------------------------------------------------------------------------
+# comparison with group sequential methods
+
+## load functions
+# rm(list = ls())
+source("simulation_functions.R")
+
+## load data (change path for different variants)
+load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda")
+
+## remove null entries (see above)
+nulls <- sapply(results_logistic_1, is.null)
+sum(nulls)
+results_logistic_1 <- results_logistic_1[!nulls]
+
+## select "epsilon" for the E-CRT (see above)
+eps <- 0.05
+eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
+results_logistic_1 <- lapply(
+  results_logistic_1,
+  function(x) x[-eps_remove]
+)
+
+## fix type I error level, maximum sample size to be considered, and the number
+## of stops for group sequential methods
+alphas <- c(0.01, 0.05)
+tmax <- 2000
+nstops <- c(5, 10, 20, 40)
+stop_seq <- 
+  lapply(nstops, function(x) seq(tmax / 25 /x, tmax / 25, tmax / 25 / x))
+
+## compute the nominal alpha levels for the group sequential methods (Pocock and
+## O'Brien & Fleming method)
+alphas_pk <- lapply(
+  nstops,
+  function(k) {
+    do.call(
+      rbind,
+      lapply(
+        alphas,
+        function(a) commonbounds(looks = k, iuse = "PK", alpha = a)$nom.alpha
+      )
+    )
+  }
+)
+alphas_of <- lapply(
+  nstops,
+  function(k) {
+    do.call(
+      rbind,
+      lapply(
+        alphas,
+        function(a) commonbounds(looks = k, iuse = "OF", alpha = a)$nom.alpha
+      )
+    )
+  }
+)
+variants <- length(alphas) * length(nstops)
+
+## find first minimum rejection time of e-variables and group sequential
+## methods, for all variants (combination of type I error and number of stops)
+for (k in seq_along(results_logistic_1)) {
+  tmp <- results_logistic_1[[k]]
+  betap <- tmp$betap
+  id <- tmp$id
+  rejections_k <- vector("list", 2 * variants + 1)
+  e <- cumprod(do.call(get_e, cbind(tmp[[1]][seq_len(tmax), ], eps = 0)))
+  rejections <- get_first_rejection(e = e, alphas = alphas, tmax = tmax)
+  rejections$method <- names(tmp)[1]
+  rejections$betap <- betap
+  rejections_k[[1]] <- rejections
+  
+  l <- 2
+  for (i in seq_along(alphas)) {
+    for (j in seq_along(nstops)) {
+      rejections <- get_first_rejection(
+        e = 1 / tmp$pvals$p_asymptotic[stop_seq[[j]]],
+        alphas = alphas_pk[[j]][i, ],
+        tmax = nstops[j]
+      )
+      rejections$size <- (tmax / nstops[j]) * rejections$size
+      rejections$method <- paste0("pk_", nstops[j])
+      rejections$alphas <- alphas[i]
+      rejections$betap <- betap
+      rejections_k[[l]] <- rejections
+      
+      l <- l + 1
+      rejections <- get_first_rejection(
+        e = 1 / tmp$pvals$p_asymptotic[stop_seq[[j]]],
+        alphas = alphas_of[[j]][i, ],
+        tmax = nstops[j]
+      )
+      rejections$size <- (tmax / nstops[j]) * rejections$size
+      rejections$method <- paste0("of_", nstops[j])
+      rejections$alphas <- alphas[i]
+      rejections$betap <- betap
+      rejections_k[[l]] <- rejections
+      l <- l + 1
+    }
+  }
+  rejections_k <- do.call(rbind, rejections_k)
+  results_logistic_1[[k]] <- rejections_k
+}
+results_logistic_1 <- do.call(rbind, results_logistic_1)
+
+## get rejection rates under null hypothesis (for the table, for group 
+## sequential methods)
+results_logistic_1 %>%
+  filter(betap == 0) %>%
+  group_by(method, alphas) %>%
+  summarise(rejected = mean(rejected)) %>%
+  arrange(alphas, method)
+
+## plot
+grpseq <- results_logistic_1 %>%
+  filter(alphas == 0.05 & betap > 0) %>%
+  filter(method %in% c(paste0("ecrt", eps), "of_20", "pk_20")) %>%
+  mutate(
+    method = factor(
+      method,
+      levels = c(paste0("ecrt", eps), "pk_20", "of_20"),
+      labels = c("E-CRT", "LRT-PK", "LRT-OF"),
+      ordered = TRUE
+    )
+  ) %>%
+  mutate(size = size + 1000 * (!rejected)) %>%
+  ggplot() +
+  geom_hline(yintercept = c(0, 1), color = "darkgray") +
+  stat_ecdf(
+    aes(x = size, color = method, group = method, linetype = method),
+    lwd = 0.7
+  ) +
+  scale_linetype_manual(values = c("solid", "longdash", "twodash")) +
+  facet_wrap(.~betap, nrow = 2) +
+  coord_cartesian(xlim = c(0, tmax)) +
+  theme(legend.position = "bottom") +
+  ggthemes::scale_color_colorblind() +
+  labs(
+    x = "Sample size at rejection",
+    y = "Empirical distribution function",
+    color = element_blank(),
+    linetype = element_blank()
+  )
+
+## export the figure
+pdf(height = 4, width = 8, file = "simulation_group_sequential.pdf")
+print(grpseq)
+dev.off()
+
+#-------------------------------------------------------------------------------
+# simulation 2
+rm(list = ls())
+load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_2.rda")
+source("simulation_functions.R")
+
+
+nulls <- sapply(results_logistic_2, is.null)
+sum(nulls)
+results_logistic_2 <- results_logistic_2[!nulls]
+
+n_crt <- c(200, 400, 1000, 1400, 2000)
+alphas <- c(0.01, 0.05, 0.1)
+for (j in seq_along(results_logistic_2)) {
+  tmp <- results_logistic_2[[j]]
+  for (i in seq_along(tmp)) {
+    tmpi <- tmp[[i]]
+    tmpi[[1]] <- get_first_rejection(
+      cumprod(get_e(tmpi[[1]]$numerator, tmpi[[1]]$denominator, tmpi[[1]]$y)),
+      alphas = alphas,
+      tmax = Inf
+    )
+    for (k in seq_along(n_crt)) {
+      tmpi[[1]][paste0("crt_", n_crt[k])] <- 
+        (tmpi[[2]]$p_crt[tmpi[[2]]$stops == n_crt[k]] <= alphas)
+    }
+    tmpi[[1]]$crt <- (tmpi[[2]]$p_crt[10] <= alphas)
+    tmpi <- tmpi[-2]
+    tmpi <- unnest(as_tibble(tmpi), ecrt)
+    tmp[[i]] <- tmpi
+  }
+  results_logistic_2[[j]] <- do.call(rbind, tmp)
+}
+results_logistic_2 <- do.call(rbind, results_logistic_2)
+results_logistic_2 <- results_logistic_2 %>%
+  rename(evalues = rejected) %>%
+  gather(key = "method", value = "rejected", evalues, starts_with("crt_"))
+
+misspecified_model_data <- results_logistic_2 %>%
+  filter(alphas == 0.05 & is.infinite(n_sample)) %>%
+  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000")) %>%
+  mutate(
+    method = factor(
+      method,
+      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)"),
+      levels = c("evalues", "crt_200", "crt_1000", "crt_2000"),
+      ordered = TRUE
+    )
+  ) %>%
+  group_by(alphas, theta, misspec, n_sample, method, update_reuse) %>%
+  summarise(rejected = mean(rejected))
+  
+misspecified_model <- ggplot() +
+  geom_hline(yintercept = 0.05, lty = 3) +
+  geom_line(
+    data = misspecified_model_data,
+    mapping = aes(x = theta, y = rejected, color = method, group = method)
+  ) +
+  geom_point(
+    data = filter(misspecified_model_data, theta %in% seq(0, 2, 0.25)),
+    aes(x = theta, y = rejected, color = method, shape = method)
+  ) +
+  facet_grid(cols = vars(misspec)) +
+  coord_cartesian(ylim = c(0, 0.25)) +
+  theme(legend.position = "none") +
+  labs(
+    x = expression(theta),
+    y = "Rejection rate",
+    color = element_blank(),
+    shape = element_blank()
+  ) +
+  scale_color_colorblind() +
+  ggtitle("(a)")
+
+finite_sample <- results_logistic_2 %>%
+  filter(alphas == 0.05 & is.finite(n_sample) & !update_reuse) %>%
+  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000")) %>%
+  mutate(
+    method = factor(
+      method,
+      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)"),
+      levels = c("evalues", "crt_200", "crt_1000", "crt_2000"),
+      ordered = TRUE
+    )
+  ) %>%
+  group_by(alphas, theta, misspec, n_sample, method, update_reuse) %>%
+  summarise(rejected = mean(rejected)) %>%
+  ggplot() +
+  geom_hline(yintercept = 0.05, lty = 3) +
+  geom_line(aes(x = n_sample, y = rejected, color = method, group = method)) +
+  geom_point(aes(x = n_sample, y = rejected, color = method, shape = method)) +
+  coord_cartesian(ylim = c(0, 0.1)) +
+  theme(legend.position = "none") +
+  labs(
+    x = "Unlabelled sample size",
+    y = "Rejection rate",
+    color = element_blank(),
+    shape = element_blank()
+  ) +
+  scale_color_colorblind() +
+  ggtitle("(b)")
+
+recycle_data <- results_logistic_2 %>%
+  filter(alphas == 0.05 & is.finite(n_sample) & update_reuse) %>%
+  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000")) %>%
+  group_by(alphas, theta, misspec, n_sample, method, update_reuse) %>%
+  summarise(rejected = mean(rejected)) %>%
+  spread(key = "method", value = "rejected") %>%
+  ungroup() %>%
+  mutate_at(
+    .vars = vars(contains("crt_")),
+    .funs = function(x) mean(x)
+  ) %>%
+  gather(key = "method", value = "rejected", evalues, contains("crt_")) %>%
+  mutate(
+    method = factor(
+      method,
+      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)"),
+      levels = c("evalues", "crt_200", "crt_1000", "crt_2000"),
+      ordered = TRUE
+    )
+  ) %>%
+  ggplot() +
+  geom_hline(yintercept = 0.05, lty = 3) +
+  geom_line(aes(x = n_sample, y = rejected, color = method, group = method)) +
+  geom_point(aes(x = n_sample, y = rejected, color = method, shape = method)) +
+  coord_cartesian(ylim = c(0, 0.1)) +
+  theme(legend.position = "right") +
+  labs(
+    x = "Unlabelled sample size",
+    y = "Rejection rate",
+    color = element_blank(),
+    shape = element_blank()
+  ) +
+  scale_color_colorblind() +
+  ggtitle("(c)")
+
+pdf(width = 8, height = 6, file = "simulation_robustness.pdf")
+ggarrange(
+  misspecified_model,
+  ggarrange(finite_sample, recycle_data, ncol = 2, widths = c(1, 1.3)),
+  nrow = 2
+)
+dev.off()
