@@ -409,8 +409,9 @@ for (j in seq_along(results_logistic_2)) {
     for (k in seq_along(n_crt)) {
       tmpi[[1]][paste0("crt_", n_crt[k])] <- 
         (tmpi[[2]]$p_crt[tmpi[[2]]$stops == n_crt[k]] <= alphas)
+      tmpi[[1]][paste0("crt_cor_", n_crt[k])] <- 
+        (tmpi[[2]]$p_crt_cor[tmpi[[2]]$stops == n_crt[k]] <= alphas)
     }
-    tmpi[[1]]$crt <- (tmpi[[2]]$p_crt[10] <= alphas)
     tmpi <- tmpi[-2]
     tmpi <- unnest(as_tibble(tmpi), ecrt)
     tmp[[i]] <- tmpi
@@ -424,12 +425,19 @@ results_logistic_2 <- results_logistic_2 %>%
 
 misspecified_model_data <- results_logistic_2 %>%
   filter(alphas == 0.05 & is.infinite(n_sample)) %>%
-  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000")) %>%
+  filter(method %in% c(
+    "evalues",
+    "crt_200",
+    "crt_1000",
+    "crt_2000",
+    "crt_cor_200",
+    "crt_cor_2000")
+  ) %>%
   mutate(
     method = factor(
       method,
-      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)"),
-      levels = c("evalues", "crt_200", "crt_1000", "crt_2000"),
+      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)", "CRT (200; cor)", "CRT (2000; cor)"),
+      levels = c("evalues", "crt_200", "crt_1000", "crt_2000", "crt_cor_200", "crt_cor_2000"),
       ordered = TRUE
     )
   ) %>%
@@ -443,10 +451,13 @@ misspecified_model <- ggplot() +
     mapping = aes(x = theta, y = rejected, color = method, group = method)
   ) +
   geom_point(
-    data = filter(misspecified_model_data, theta %in% seq(0, 2, 0.25)),
+    data = filter(
+      group_by(misspecified_model_data, alphas, misspec, method),
+      rank(theta) %in% seq(5, 40, 5)
+    ),
     aes(x = theta, y = rejected, color = method, shape = method)
   ) +
-  facet_grid(cols = vars(misspec)) +
+  facet_grid(cols = vars(misspec), scales = "free_x") +
   coord_cartesian(ylim = c(0, 0.25)) +
   theme(legend.position = "none") +
   labs(
@@ -460,12 +471,12 @@ misspecified_model <- ggplot() +
 
 finite_sample <- results_logistic_2 %>%
   filter(alphas == 0.05 & is.finite(n_sample) & !update_reuse) %>%
-  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000")) %>%
+  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000", "crt_cor_200", "crt_cor_2000")) %>%
   mutate(
     method = factor(
       method,
-      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)"),
-      levels = c("evalues", "crt_200", "crt_1000", "crt_2000"),
+      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)", "CRT (200; cor)", "CRT (2000; cor)"),
+      levels = c("evalues", "crt_200", "crt_1000", "crt_2000", "crt_cor_200", "crt_cor_2000"),
       ordered = TRUE
     )
   ) %>%
@@ -475,7 +486,7 @@ finite_sample <- results_logistic_2 %>%
   geom_hline(yintercept = 0.05, lty = 3) +
   geom_line(aes(x = n_sample, y = rejected, color = method, group = method)) +
   geom_point(aes(x = n_sample, y = rejected, color = method, shape = method)) +
-  coord_cartesian(ylim = c(0, 0.1)) +
+  coord_cartesian(ylim = c(0, 0.2)) +
   theme(legend.position = "none") +
   labs(
     x = "Unlabelled sample size",
@@ -488,7 +499,7 @@ finite_sample <- results_logistic_2 %>%
 
 recycle_data <- results_logistic_2 %>%
   filter(alphas == 0.05 & is.finite(n_sample) & update_reuse) %>%
-  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000")) %>%
+  filter(method %in% c("evalues", "crt_200", "crt_1000", "crt_2000", "crt_cor_200", "crt_cor_2000")) %>%
   group_by(alphas, theta, misspec, n_sample, method, update_reuse) %>%
   summarise(rejected = mean(rejected)) %>%
   spread(key = "method", value = "rejected") %>%
@@ -501,8 +512,8 @@ recycle_data <- results_logistic_2 %>%
   mutate(
     method = factor(
       method,
-      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)"),
-      levels = c("evalues", "crt_200", "crt_1000", "crt_2000"),
+      labels = c("E-value", "CRT (200)", "CRT (1000)", "CRT (2000)", "CRT (200; cor)", "CRT (2000; cor)"),
+      levels = c("evalues", "crt_200", "crt_1000", "crt_2000", "crt_cor_200", "crt_cor_2000"),
       ordered = TRUE
     )
   ) %>%
@@ -510,7 +521,7 @@ recycle_data <- results_logistic_2 %>%
   geom_hline(yintercept = 0.05, lty = 3) +
   geom_line(aes(x = n_sample, y = rejected, color = method, group = method)) +
   geom_point(aes(x = n_sample, y = rejected, color = method, shape = method)) +
-  coord_cartesian(ylim = c(0, 0.1)) +
+  coord_cartesian(ylim = c(0, 0.16)) +
   theme(legend.position = "right") +
   labs(
     x = "Unlabelled sample size",
@@ -528,3 +539,4 @@ ggarrange(
   nrow = 2
 )
 dev.off()
+

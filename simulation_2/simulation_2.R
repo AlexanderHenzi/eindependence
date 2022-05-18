@@ -22,6 +22,8 @@ specs2 <- expand.grid(
   stringsAsFactors = FALSE
 )
 specs <- rbind(specs1, specs2)
+specs$theta[specs$misspec == "tanh"] <- specs$theta[specs$misspec == "tanh"] * 3
+specs$theta[specs$misspec == "quadratic"] <- specs$theta[specs$misspec == "quadratic"] * 0.6
 n0 <- 5 * p
 betap <- 0
 nsim <- 500
@@ -45,8 +47,9 @@ for (k in seq_len(nrow(specs))) {
   #-----------------------------------------------------------------------------
   # data generation and computation of e-values (quadratic error)
   set.seed(k * 100 + id)
+  
   Mu <- rep(0, p)
-  Sigma <- toeplitz(1 / seq_len(p) * c(1, 1))
+  Sigma <- toeplitz(1 / seq_len(p) * c(1, -1))
   z <- MASS::mvrnorm(n = n, mu = Mu, Sigma = Sigma)
   x <- z[, p]
   z <- z[, -p]
@@ -89,7 +92,7 @@ for (k in seq_len(nrow(specs))) {
     bias_fun = misspec_fun,
     nsim = nsim
   )
-  
+
   out[[k]] <- list(
     ecrt = ecrt,
     pvals = pvals,

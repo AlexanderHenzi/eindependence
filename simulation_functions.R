@@ -485,7 +485,9 @@ running_mle_logistic_penalized <- function(
 
 #' Conditional randomization test with Gaussian distribution for X|Z
 #' 
-#' Computes the conditional randomization test for logistic regression.
+#' Computes the conditional randomization test for logistic regression. Also
+#' computes the p-value when the test statistic is absolute correlation between
+#' Y and X, instead of the likelihood of the logistic model.
 #' 
 #' @param x covariate (vector)
 #' @param y response variable (binary vector).
@@ -524,6 +526,7 @@ crt_logistic_gaussian <- function(
   }
   data <- as.data.frame(cbind(y = y, x = x, z))
   p_crt <- rep(1, length(stops))
+  p_crt_cor <- rep(1, length(stops))
   form <- formula(paste("y ~", paste(colnames(data)[-1], collapse = "+")))
   n <- length(x)
   if (!is.null(coef) | !is.null(xz_sample)) {
@@ -544,15 +547,20 @@ crt_logistic_gaussian <- function(
       if (isFALSE(model)) next
       llikelihood <- sum(log(abs(1 - y[nn] - fitted(model))))
       llikelihood_sim <- rep(NA, nsim)
+      cor_true <- abs(cor(y[nn], x[nn]))
+      cor_sim <- rep(NA, nsim)
       for (s in seq_len(ncol(sims))) {
+        cor_sim[s] <- abs(cor(y[nn], sims[nn, s]))
         df_new <- data[seq_len(stops[k]), ]
-        df_new$x <- sims[seq_len(stops[k]), s]
+        df_new$x <- sims[nn, s]
         sim_model <- try_logistic_glm(form, df_new)
         if (isFALSE(sim_model)) next
         llikelihood_sim[s] <- sum(log(abs(1 - y[nn] - fitted(sim_model))))
       }
       p_crt[k] <- 
         (1 + sum(llikelihood_sim >= llikelihood, na.rm = TRUE)) / (nsim + 1)
+      p_crt_cor[k] <- 
+        (1 + sum(cor_sim >= cor_true, na.rm = TRUE)) / (nsim + 1)
     }
   } else {
     form_xz <- formula(paste0("x ~", paste0(colnames(z), collapse = "+"), -1))
@@ -565,20 +573,26 @@ crt_logistic_gaussian <- function(
       sdev <- sqrt(mean(residuals(model_xz)^2))
       llikelihood <- sum(log(abs(1 - y[nn] - fitted(model))))
       llikelihood_sim <- rep(NA, nsim)
+      cor_true <- abs(cor(y[nn], x[nn]))
+      cor_sim <- rep(NA, nsim)
       for (s in seq_len(ncol(sims))) {
-        df_new <- data[seq_len(stops[k]), ]
-        df_new$x <- rnorm(nn, means, sdev)
+        df_new <- data[nn, ]
+        sim <- sim
+        df_new$x <- sim
+        cor_sim[s] <- abs(cor(y[nn], sim))
         sim_model <- try_logistic_glm(form, df_new)
         if (isFALSE(sim_model)) next
         llikelihood_sim[s] <- sum(log(abs(1 - y[nn] - fitted(sim_model))))
       }
       p_crt[k] <- 
         (1 + sum(llikelihood_sim >= llikelihood, na.rm = TRUE)) / (nsim + 1)
+      p_crt_cor[k] <- 
+        (1 + sum(cor_sim >= cor_true, na.rm = TRUE)) / (nsim + 1)
     }
   }
-
-  data.frame(stops = stops, p_crt = p_crt) 
+  data.frame(stops = stops, p_crt = p_crt, p_crt_cor = p_crt_cor) 
 }
+
 
 #' Conditional randomization test and asymptotic test for logistic regression
 #' 
