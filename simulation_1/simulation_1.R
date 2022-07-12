@@ -24,7 +24,6 @@ pars <- runif(p - 1, -1, 1)
 probs <- expit(intercept + z %*% pars + x * betap)
 y <- rbinom(n, 1, probs)
 sim_fun <- function(z) sim_normal_covariate(z, Mu = Mu, Sigma = Sigma, nsim = 500)
-n0 <- 5 * p
 
 #-------------------------------------------------------------------------------
 # different testing methods
