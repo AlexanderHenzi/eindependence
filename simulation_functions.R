@@ -207,7 +207,7 @@ sim_normal_covariate <- function(z, Mu, Sigma, nsim) {
   sigma21 <- Sigma[d2, d1]
   sigma22 <- Sigma[d2, d2]
   newmu <- c(mu2 + sigma12 %*% solve(sigma11, z - mu1))
-  newsigma <- c(sigma22 - sigma12 %*% solve(sigma11, sigma12))
+  newsigma <- c(sigma22 - sigma12 %*% solve(sigma11, sigma12)) # TODO: Should this be solve(sigma11,sigma21)? Though in Toeplitz case, sigma21=sigma12.
   out <- rnorm(nsim * NCOL(z), mean = newmu, sd = sqrt(newsigma))
   if (is.matrix(z)) out <- matrix(out, nrow = NCOL(z))
   out
@@ -478,7 +478,7 @@ running_mle_logistic_penalized <- function(
     if (isFALSE(model_null)) next
     numerator[k] <- 
       predict_logistic_glm(model_full, covariates[k, , drop = FALSE])
-    denominator[k] <- predict_logistic_glm(model_null, data[k, ])
+    denominator[k] <- predict_logistic_glm(model_null, data[k, ]) # TODO: Should give the same results, but maybe clearer to use either covariates[k,] or data[k,] for both?
   }
   data.frame(numerator = numerator, denominator = denominator, y = y) 
 }
