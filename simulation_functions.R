@@ -74,7 +74,7 @@ find_sample_size <- function(times, rejected, beta, tmax) {
   times[!rejected] <- tmax
   worst <- quantile(times, probs = beta, type = 1)
   power_achieved <- (mean(rejected[times <= worst]) >= beta)
-  average <- mean(times[times <= worst])
+  average <- mean(times)
   data.frame(
     worst = worst,
     average = average,
@@ -86,26 +86,24 @@ find_sample_size <- function(times, rejected, beta, tmax) {
 #' Try to fit a logistic regression model
 #' 
 #' Fits a logistic regression model with glm to the data and returns FALSE if
-#' this creates warning messaes or errors (because the algorithm does not
-#' converge and parameter estimates are infinite).
+#' this creates errors.
 #' 
 #' @param formula model formula.
 #' @param data data for the formula (containing all variables).
 #' 
 #' @return
-#' The fitted model, or FALSE if an error or warning occurred.
+#' The fitted model, or FALSE if an error occurred.
 try_logistic_glm <- function(formula, data) {
   tryCatch(
     expr = glm(formula = formula, family = binomial, data = data),
-    error = function(out) FALSE,
-    warning = function(out) FALSE
+    error = function(out) FALSE
   )
 }
 
 #' Try to fit a penalized logistic regression model
 #' 
 #' Fits a penalized logistic regression model with glmnet. Returns FALSE if
-#' this results in an error or warnings.
+#' this results in an error.
 #' 
 #' @param x matrix of covariates.
 #' @param y vector of observations (binary).
@@ -116,14 +114,14 @@ try_logistic_glm <- function(formula, data) {
 #'     (only for running MLE)
 #' 
 #' @return
-#' The fitted model, or FALSE if an error or warning occurred o(r if the 
-#' coefficient of interest equals zero and fifb1 is TRUE).
+#' The fitted model, or FALSE if an error occurred (or if the coefficient of
+#' interest equals zero and fifb1 is TRUE).
 try_logistic_glm_penalized <- function(
     x,
     y,
     lambda,
     not_penalize = NULL,
-    fifb1 = TRUE
+    fifb1 = FALSE
   ) {
   penalty.factor <- rep(1, ncol(x))
   if (!is.null(not_penalize)) penalty.factor[not_penalize] <- 0
@@ -135,8 +133,7 @@ try_logistic_glm_penalized <- function(
       lambda = lambda,
       penalty.factor = penalty.factor
     ),
-    error = function(out) FALSE,
-    warning = function(out) FALSE
+    error = function(out) FALSE
   )
   if (!isFALSE(out)) {
     if (fifb1 && out$beta[1, 1] == 0) return(FALSE)
@@ -389,8 +386,7 @@ e_crt_logistic_oracle <- function(x, y, z, sim_fun, par) {
 #' @param n0 minimal sample size for which the e-variables are computed.
 #' 
 #' @return
-#' A data.frame containing the numerator and the denominator of the e-variables,
-#' and the observations.
+#' A data.frame containing the likelihood ratio process M.
 running_mle_logistic <- function(x, y, z, n0) {
   if (is.vector(z)) {
     z <- matrix(z, ncol = 1)
@@ -400,20 +396,34 @@ running_mle_logistic <- function(x, y, z, n0) {
   }
   data <- as.data.frame(cbind(y = y, x = x, z))
   n <- nrow(data)
-  numerator <- rep(1, n)
-  denominator <- rep(1, n)
+  M <- rep(1, n)
+  lnumerator <- rep(0, n)
   formula_full <- 
     formula(paste("y ~", paste(colnames(data)[-1], collapse = "+")))
   formula_null <- formula(paste("y ~", paste(colnames(z), collapse = "+")))
-  for (k in (n0 + 1):n) {
+  q <- ncol(data)
+  for (k in (n0+1):(n0 + q)) {
+    # when the number of variables is smaller than the sample size, the MLE in
+    # the denominator is a perfect fit, so the denominator equals 1
     model_full <- try_logistic_glm(formula_full, data[seq_len(k - 1), ])
     if (isFALSE(model_full)) next
-    model_null <- try_logistic_glm(formula_null, data[seq_len(k), ])
-    if (isFALSE(model_null)) next
-    numerator[k] <- predict_logistic_glm(model_full, data[k, ])
-    denominator[k] <- predict_logistic_glm(model_null, data[k, ])
+    lnumerator[k] <- lnumerator[k - 1] + 
+      log(abs(predict_logistic_glm(model_full, data[k, ]) - 1 + y[k]))
+    M[k] <- exp(lnumerator[k])
   }
-  data.frame(numerator = numerator, denominator = denominator, y = y) 
+  for (k in (n0 + q):n) {
+    model_full <- try_logistic_glm(formula_full, data[seq_len(k - 1), ])
+    model_null <- try_logistic_glm(formula_null, data[(n0 + 1):k, ])
+    if (isFALSE(model_null) || isFALSE(model_full)) {
+      lnumerator[k] <- lnumerator[k - 1]
+      M[k] <- M[k - 1]
+    }
+    lnumerator[k] <- lnumerator[k - 1] +
+      log(abs(predict_logistic_glm(model_full, data[k, ]) - 1 + y[k]))
+    M[k] <- exp(lnumerator[k] - 
+                  sum(log(abs(fitted(model_null) + y[(n0 + 1):k] - 1))))
+  }
+  data.frame(M = M) 
 }
 
 #' Running MLE logistic with penalized alternative
@@ -433,8 +443,7 @@ running_mle_logistic <- function(x, y, z, n0) {
 #' only updated every 10 observations to reduce the computation time.
 #' 
 #' @return
-#' A data.frame containing the numerator and the denominator of the e-variables,
-#' and the observations.
+#' A data.frame containing the likelihood ratio process M.
 running_mle_logistic_penalized <- function(
     x,
     y,
@@ -451,36 +460,76 @@ running_mle_logistic_penalized <- function(
   data <- as.data.frame(cbind(y = y, x = x, z))
   covariates <- cbind(x, z)
   n <- nrow(data)
-  numerator <- rep(1, n)
-  denominator <- rep(1, n)
+  M <- rep(1, n)
+  lnumerator <- rep(0, n)
   formula_null <- formula(paste("y ~", paste(colnames(z), collapse = "+")))
   cv_lambda <- try_cv_glmnet(
     x = covariates[seq_len(n0), ],
     y = y[seq_len(n0)]
   )
-  for (k in (n0 + 1):n) {
-    if (k %% 10 == 0) {
+  q <- ncol(data)
+  for (k in (n0 + 1):(n0 + q)) {
+    if (isFALSE(cv_lambda) || ((k  - 1L) %% 10L == 0L)) {
+      # update lambda every 10th observation, or try until it works if something
+      # went wrong in the previous update
       cv_lambda <- try_cv_glmnet(
         x = covariates[seq_len(k - 1), ],
         y = y[seq_len(k - 1)],
         not_penalize = not_penalize
       )
     }
-    if (isFALSE(cv_lambda)) next
+    if (isFALSE(cv_lambda)) {
+      last_false <- k
+      lnumerator[k] <- lnumerator[k - 1]
+      M[k] <- M[k - 1]
+      next
+    }
     model_full <- try_logistic_glm_penalized(
       x = covariates[seq_len(k - 1), ],
       y = y[seq_len(k - 1)],
       lambda = cv_lambda,
       not_penalize = not_penalize
     )
-    if (isFALSE(model_full)) next
-    model_null <- try_logistic_glm(formula_null, data[seq_len(k), ])
-    if (isFALSE(model_null)) next
-    numerator[k] <- 
-      predict_logistic_glm(model_full, covariates[k, , drop = FALSE])
-    denominator[k] <- predict_logistic_glm(model_null, data[k, ])
+    if (isFALSE(model_full)) {
+      lnumerator[k] <- lnumerator[k - 1]
+      M[k] <- M[k - 1]
+      next
+    }
+    lnumerator[k] <- lnumerator[k - 1] +
+      log(abs(predict_logistic_glm(model_full, covariates[k, , drop = FALSE]) - 1 + y[k]))
+    M[k] <- exp(lnumerator[k])
   }
-  data.frame(numerator = numerator, denominator = denominator, y = y) 
+  for (k in (n0 + q):n) {
+    if (isFALSE(cv_lambda) || ((k  - 1L) %% 10L == 0L)) {
+      cv_lambda <- try_cv_glmnet(
+        x = covariates[seq_len(k - 1), ],
+        y = y[seq_len(k - 1)],
+        not_penalize = not_penalize
+      )
+    }
+    if (isFALSE(cv_lambda)) {
+      lnumerator[k] <- lnumerator[k - 1]
+      M[k] <- M[k - 1]
+      next
+    }
+    model_full <- try_logistic_glm_penalized(
+      x = covariates[seq_len(k - 1), ],
+      y = y[seq_len(k - 1)],
+      lambda = cv_lambda,
+      not_penalize = not_penalize
+    )
+    model_null <- try_logistic_glm(formula_null, data[(n0 + 1):k, ])
+    if (isFALSE(model_full) || isFALSE(model_null)) {
+      lnumerator[k] <- lnumerator[k - 1]
+      M[k] <- M[k - 1]
+      next
+    }
+    lnumerator[k] <- lnumerator[k - 1] +
+      log(abs(predict_logistic_glm(model_full, covariates[k, , drop = FALSE]) - 1 + y[k]))
+    M[k] <- exp(lnumerator[k] -
+                  sum(log(abs(fitted(model_null) + y[(n0 + 1):k] - 1))))
+  }
+  data.frame(M = M) 
 }
 
 #' Conditional randomization test with Gaussian distribution for X|Z

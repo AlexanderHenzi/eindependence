@@ -42,7 +42,7 @@ oracle <- e_crt_logistic_oracle(x = x, y = y, z = z, sim_fun = sim_fun, par = c(
 rmle <- running_mle_logistic(x = x, y = y, z = z, n0 = n0)
 
 ## penalized running mle
-rmlep <- running_mle_logistic_penalized(x = x, y = y, z = z, n0 = n0, not_penalize = NULL) # not_penalize = 1 for not penalizing the "x"-coefficient
+rmlep <- running_mle_logistic_penalized(x = x, y = y, z = z, n0 = n0, not_penalize = 1) # not_penalize = 1 for not penalizing the "x"-coefficient
 
 ## p-values
 pvals <- crt_lrt_logistic(x = x, y = y, z = z, stops = seq(25, n, 25), sim_fun = sim_fun)
