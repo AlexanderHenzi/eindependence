@@ -68,8 +68,7 @@ get_first_rejection <- function(e, alphas, tmax) {
 #' 
 #' @return 
 #' A data.frame containing the minimum sample size required to reject with the
-#' given power, the average sample when actually achieving this power, and 
-#' whether the power is achieved.
+#' given power, the average sample size, and whether the power is achieved.
 find_sample_size <- function(times, rejected, beta, tmax) {
   times[!rejected] <- tmax
   worst <- quantile(times, probs = beta, type = 1)
