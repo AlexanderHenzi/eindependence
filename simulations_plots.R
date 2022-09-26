@@ -26,9 +26,9 @@ results_logistic_1 <- results_logistic_1[!nulls]
 ## the "epsilon" for the E-CRT. Select the desired value in 0, 0.01, 0.05, 0.1
 eps <- 0.05
 eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
-results_logistic_1 <- lapply(
-  results_logistic_1,
-  function(x) x[-eps_remove]
+ results_logistic_1 <- lapply(
+ results_logistic_1,
+ function(x) x[-eps_remove]
 )
 
 ## the type I level errors to consider; containers for rejection rates of CRT 
@@ -46,8 +46,14 @@ for (k in seq_along(results_logistic_1)) {
   betap <- tmp$betap
   id <- tmp$id
   rejections_k <- vector("list", 6)
-  for (j in seq_len(4)) {
+  for (j in 1:2) {
     e <- cumprod(do.call(get_e, cbind(tmp[[j]], eps = 0)))
+    rejections <- get_first_rejection(e = e, alphas = alphas, tmax = 2000)
+    rejections$method <- names(tmp)[j]
+    rejections_k[[j]] <- rejections
+  }
+  for (j in 3:4) {
+    e <- tmp[[j]]$M
     rejections <- get_first_rejection(e = e, alphas = alphas, tmax = 2000)
     rejections$method <- names(tmp)[j]
     rejections_k[[j]] <- rejections
@@ -160,7 +166,7 @@ df <- rbind(df,  df_crt, df_asymptotic) %>%
     method = factor(
       method,
       levels = c("asymptotic", "crt", "oracle", paste0("ecrt", eps), "rmle", "rmlep"),
-      labels = c("LRT", "CRT", "O-E-CRT", "E-CRT", "R-MLE", "R-MLE-P"),
+      labels = c("LRT", "CRT", "E-CRT-O", "E-CRT", "R-MLE", "R-MLE-P"),
       ordered = TRUE
     )
   )
@@ -218,7 +224,7 @@ simulation_alternative <- ggplot() +
   scale_linetype_manual(values = c(5, 1)) +
   facet_grid(rows = vars(alphas), cols = vars(beta)) +
   labs(
-    x = expression(beta[p]),
+    x = expression(beta),
     y = "Sample size",
     linetype = element_blank(),
     color = element_blank(),
@@ -231,7 +237,7 @@ simulation_alternative <- ggplot() +
   )
 
 ## save the plot
-pdf(width = 8, height = 6, file = "simulation_alternative.pdf")
+pdf(width = 8, height = 6, file = paste0("simulation_alternative_eps", eps, ".pdf"))
 print(simulation_alternative)
 dev.off()
 
@@ -243,7 +249,8 @@ dev.off()
 source("simulation_functions.R")
 
 ## load data (change path for different variants)
-load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda")
+load("/home/alexander/Desktop/results_logistic_1_negative_cor.rda")
+# load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda")
 
 ## remove null entries (see above)
 nulls <- sapply(results_logistic_1, is.null)
@@ -252,11 +259,11 @@ results_logistic_1 <- results_logistic_1[!nulls]
 
 ## select "epsilon" for the E-CRT (see above)
 eps <- 0.05
-eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
-results_logistic_1 <- lapply(
-  results_logistic_1,
-  function(x) x[-eps_remove]
-)
+# eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
+# results_logistic_1 <- lapply(
+#   results_logistic_1,
+#   function(x) x[-eps_remove]
+# )
 
 ## fix type I error level, maximum sample size to be considered, and the number
 ## of stops for group sequential methods
@@ -380,7 +387,7 @@ grpseq <- results_logistic_1 %>%
   )
 
 ## export the figure
-pdf(height = 4, width = 8, file = "simulation_group_sequential.pdf")
+pdf(height = 4, width = 8, file = "simulation_group_sequential_negative_cor.pdf")
 print(grpseq)
 dev.off()
 
@@ -389,7 +396,6 @@ dev.off()
 rm(list = ls())
 load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_2.rda")
 source("simulation_functions.R")
-
 
 nulls <- sapply(results_logistic_2, is.null)
 sum(nulls)
@@ -461,7 +467,7 @@ misspecified_model <- ggplot() +
   coord_cartesian(ylim = c(0, 0.25)) +
   theme(legend.position = "none") +
   labs(
-    x = expression(theta),
+    x = expression(eta),
     y = "Rejection rate",
     color = element_blank(),
     shape = element_blank()
