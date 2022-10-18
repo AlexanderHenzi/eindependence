@@ -21,15 +21,19 @@ expit <- function(x) 1 / (1 + exp(-x))
 #' @param numerator numerator probability.
 #' @param denominator denominator probability.
 #' @param y observations (binary).
-#' @param eps number in [0,1]. Define e-variables as E*(1-eps)+eps to avoid
-#'     exact zeros.
+#' @param unbiased use the method guaranteed to have expected value 1 as 
+#'     described in the paper (only for E-CRT).
+#' @param M number of simulations for unbiased method.
 #' 
 #' @return 
 #' Vector of e-values, same length as input.
-get_e <- function(numerator, denominator, y, eps = 0) {
+get_e <- function(numerator, denominator, y, unbiased = FALSE, M = NULL) {
+  if (unbiased) {
+    denominator <- numerator / (M + 1) + M / (M + 1) * denominator
+  }
   out <- (1 - y - numerator) / (1 - y - denominator)
   out[numerator == denominator] <- 1
-  out * (1 - eps) + eps
+  out
 }
 
 #' Find first time where an e-process exceeds the level 1 / alpha
@@ -73,7 +77,7 @@ find_sample_size <- function(times, rejected, beta, tmax) {
   times[!rejected] <- tmax
   worst <- quantile(times, probs = beta, type = 1)
   power_achieved <- (mean(rejected[times <= worst]) >= beta)
-  average <- mean(pmin(times, worst))
+  average <- mean(times) # mean(pmin(times, worst))
   data.frame(
     worst = worst,
     average = average,

@@ -98,6 +98,7 @@ for (j in (n0+1):m) {
   denom[j] <- mean(
     pmin(pmax(0.01, predict(model, sim_data, type = "response")), 0.99)
   )
+  denom[j] <- (pred[j] + 500 * denom[j]) / 501
   e[j] <- (1 - df_test$y[j] - pred[j]) / (1 - df_test$y[j] - denom[j])
 }
 

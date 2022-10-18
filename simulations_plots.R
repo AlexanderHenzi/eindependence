@@ -14,7 +14,7 @@ theme_set(theme_bw(base_size = 10))
 source("simulation_functions.R")
 
 ## change path below for variations of the simulation example
-load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda")
+load("<path_to_simulation_output>")
 
 ## remove null entries (a higher number than 800 is generated, to make sure than
 ## at least 800 simulations are available when running the computations on the
@@ -249,8 +249,7 @@ dev.off()
 source("simulation_functions.R")
 
 ## load data (change path for different variants)
-load("/home/alexander/Desktop/results_logistic_1_negative_cor.rda")
-# load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda")
+load("<path_to_simulation_output>")
 
 ## remove null entries (see above)
 nulls <- sapply(results_logistic_1, is.null)
@@ -394,7 +393,7 @@ dev.off()
 #-------------------------------------------------------------------------------
 # simulation 2
 rm(list = ls())
-load("/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_2.rda")
+load("<path_to_simulation_output>")
 source("simulation_functions.R")
 
 nulls <- sapply(results_logistic_2, is.null)
