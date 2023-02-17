@@ -1,6 +1,7 @@
 library(tidyverse)
 source("simulation_functions.R")
-theme_set(theme_bw(base_size = 10))
+
+theme_set(theme_bw(base_size = 12))
 
 # plots of misspecification functions in setting of CPT paper
 set.seed(123)
@@ -11,8 +12,6 @@ x <- rnorm(z %*% b)
 
 mu <- z %*% b
 dmu <- density(mu)
-lines(dmu$x, dmu$y, col = 2)
-
 mus <- sort(mu)
 
 df_berrett <- data.frame(
@@ -132,11 +131,11 @@ plot_ours <- df %>%
   ggthemes::scale_color_colorblind() +
   facet_grid(cols = vars(misspec)) +
   coord_cartesian(ylim = range(mus_ours)) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom", legend.text = element_text(size = 8)) +
   labs(
     x = "True mean of X conditional on Z",
     y = "Misspecified mean",
-    color = expression(theta)
+    color = expression(xi)
   )
 
 pdf(file = "misspecification_function.pdf", width = 8, height = 6)

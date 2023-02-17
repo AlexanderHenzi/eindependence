@@ -15,7 +15,7 @@ n0 <- 5 * p
 # data generation
 set.seed(id)
 Mu <- rep(0, p)
-Sigma <- toeplitz(1 / seq_len(p) * c(1, 1)) # change to c(1, -1) for negative correlations. Note that this multiplication is only well-defined if p is a multiple of 2.
+Sigma <- toeplitz(1 / seq_len(p) * c(1, -1)) # change to c(1, -1) for negative correlations
 z <- MASS::mvrnorm(n = n, mu = Mu, Sigma = Sigma)
 x <- z[, p]
 z <- z[, -p, drop = FALSE]
@@ -24,6 +24,7 @@ pars <- runif(p - 1, -1, 1)
 probs <- expit(intercept + z %*% pars + x * betap)
 y <- rbinom(n, 1, probs)
 sim_fun <- function(z) sim_normal_covariate(z, Mu = Mu, Sigma = Sigma, nsim = 500)
+n0 <- 5 * p
 
 #-------------------------------------------------------------------------------
 # different testing methods
@@ -41,7 +42,7 @@ oracle <- e_crt_logistic_oracle(x = x, y = y, z = z, sim_fun = sim_fun, par = c(
 rmle <- running_mle_logistic(x = x, y = y, z = z, n0 = n0)
 
 ## penalized running mle
-rmlep <- running_mle_logistic_penalized(x = x, y = y, z = z, n0 = n0, not_penalize = 1) # not_penalize = 1 for not penalizing the "x"-coefficient
+rmlep <- running_mle_logistic_penalized(x = x, y = y, z = z, n0 = n0, not_penalize = NULL) # not_penalize = 1 for not penalizing the "x"-coefficient
 
 ## p-values
 pvals <- crt_lrt_logistic(x = x, y = y, z = z, stops = seq(25, n, 25), sim_fun = sim_fun)

@@ -2,7 +2,7 @@
 # packages
 library(tidyverse)
 library(lubridate)
-theme_set(theme_bw())
+theme_set(theme_bw(base_size = 13.5))
 
 #-------------------------------------------------------------------------------
 # load data
@@ -34,7 +34,8 @@ duration_mean_by_time <- function(
     minute,
     month,
     Member.type,
-    End.date
+    End.date,
+    Start.date
   ) {
   h <- 20
   K <- 
@@ -52,6 +53,7 @@ duration_mean_by_time <- function(
       duration = duration,
       Member.type = Member.type,
       End.date = End.date,
+      Start.date = Start.date,
       minute = minute
     )
   )
@@ -65,7 +67,8 @@ df <- data %>%
       minute,
       month,
       Member.type,
-      End.date
+      End.date,
+      Start.date
     )
   ) %>% 
   unnest(duration_by_time) %>%
@@ -73,12 +76,14 @@ df <- data %>%
 
 #-------------------------------------------------------------------------------
 # extract validation data and run tests
-df1 <- df %>%
+df1 <- df1_seq <- df %>%
   filter(month == 11 & weights_total >= 20) %>%
-  arrange(as.POSIXct(End.date))
+  arrange(as.POSIXct(Start.date))
 
-n0 <- 500
-df_test <- data.frame(
+start_dates <- as.POSIXct(df1$Start.date)
+
+n0 <- 200
+df_test_seq <- df_test <- data.frame(
   y = as.integer(df1$Member.type == "Member"),
   z = df1$Duration_mean,
   x = df1$duration
@@ -88,20 +93,43 @@ m <- nrow(df1)
 e <- rep(1, m)
 pred <- rep(1, m)
 denom <- rep(1, m)
-for (j in (n0+1):m) {
-  df_fit <- df_test[seq_len(j - 1), ]
-  df_new <- df_test[j, ]
-  sim <- rnorm(500, mean = df1$Duration_mean[j], sd = sqrt(df1$Duration_var[j]))
-  sim_data <- data.frame(x = sim, z = df_test$z[j])
-  model <- glm(y ~ x + z, family = binomial, data = df_fit)
-  pred[j] <- pmin(pmax(0.01, predict(model, df_new, type = "response")), 0.99)
-  denom[j] <- mean(
-    pmin(pmax(0.01, predict(model, sim_data, type = "response")), 0.99)
-  )
-  denom[j] <- (pred[j] + 500 * denom[j]) / 501
-  e[j] <- (1 - df_test$y[j] - pred[j]) / (1 - df_test$y[j] - denom[j])
+include_obs <- rep(TRUE, m)
+n_start_sample <- 0
+for (j in 1:m) {
+  # remove observations which might be dependent on past ones
+  start_date <- start_dates[j]
+  start_diff <- as.double(start_date - start_dates[seq_len(j - 1)], units = "hours")
+  potential_dependence <-  which(abs(start_diff) < 0) # replace 0 by positive number to remove potentially dependent observations
+  if (length(potential_dependence) > 0) {
+    start_location <- df1_seq$Start.station.number[j]
+    same_location <- any((start_location == df1_seq$Start.station.number[potential_dependence]))
+    if (same_location) {
+      include_obs[j] <- FALSE
+      df_test_seq[j, ] <- NA
+      start_date[j] <- NA
+      next
+    }
+  }
+  n_start_sample <- n_start_sample + 1
+  
+  # construct e-statistics
+  if (n_start_sample > 199) {
+    df_fit <- df_test_seq[seq_len(j - 1), ]
+    df_new <- df_test_seq[j, ]
+    sim <- rnorm(500, mean = df1_seq$Duration_mean[j], sd = sqrt(df1_seq$Duration_var[j]))
+    sim_data <- data.frame(x = sim, z = df_test_seq$z[j])
+    model <- glm(y ~ x + z, family = binomial, data = df_fit)
+    pred[j] <- pmin(pmax(0.01, predict(model, df_new, type = "response")), 0.99)
+    denom[j] <- mean(
+      pmin(pmax(0.01, predict(model, sim_data, type = "response")), 0.99)
+    )
+    denom[j] <- (pred[j] + 500 * denom[j]) / 501
+    e[j] <- (1 - df_test_seq$y[j] - pred[j]) / (1 - df_test_seq$y[j] - denom[j])
+  }
 }
 
+mean(include_obs)
+sum(include_obs)
 which.max(cumprod(e) >= 1e4)
 df1$End.date[which.max(cumprod(e) >= 1e4)]
 prod(e)
@@ -118,16 +146,17 @@ case_study <- ggplot(plot_data) +
   scale_y_log10() +
   labs(x = "Date", y = "E-value")
 
-pdf(width = 8, height = 4, file = "case_study.pdf")
+pdf(width = 8, height = 4, file = "revised_case_study.pdf")
 case_study
 dev.off()
 
 # conditional randomization test:
-cor_true <- abs(cor(df_test$y, df_test$x))
+ninclude <- sum(include_obs)
+cor_true <- abs(cor(df_test$y[include_obs], df_test$x[include_obs] - df1$Duration_mean[include_obs]))
 M <- 10000
 cor_sim <- numeric(M)
 for (j in seq_len(M)) {
-  cor_sim[j] <- abs(cor(df_test$y, rnorm(nrow(df_test), 0, sqrt(df1$Duration_var))))
+  cor_sim[j] <- abs(cor(df_test$y[include_obs], rnorm(ninclude, 0, sqrt(df1$Duration_var[include_obs]))))
 }
 
 (sum(cor_sim >= cor_true) + 1) / (M + 1)

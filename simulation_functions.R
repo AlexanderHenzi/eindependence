@@ -77,7 +77,7 @@ find_sample_size <- function(times, rejected, beta, tmax) {
   times[!rejected] <- tmax
   worst <- quantile(times, probs = beta, type = 1)
   power_achieved <- (mean(rejected[times <= worst]) >= beta)
-  average <- mean(times) # mean(pmin(times, worst))
+  average <- mean(pmin(times, worst))
   data.frame(
     worst = worst,
     average = average,

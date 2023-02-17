@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --mail-user=alexander.henzi@stat.unibe.ch
 #SBATCH --mail-type=end,fail
 #SBATCH --job-name="sim_logistic_2"
 #SBATCH --time=3:00:00

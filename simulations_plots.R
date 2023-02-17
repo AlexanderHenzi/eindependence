@@ -4,7 +4,6 @@ library(tidyverse)
 library(ggthemes)
 library(ldbounds)
 library(ggpubr)
-theme_set(theme_bw(base_size = 10))
 
 #-------------------------------------------------------------------------------
 # sample size for different type I error and power
@@ -14,11 +13,11 @@ theme_set(theme_bw(base_size = 10))
 source("simulation_functions.R")
 
 ## change path below for variations of the simulation example
-load("<path_to_simulation_output>")
+load() # enter here path to output from simulation_1
 
 ## remove null entries (a higher number than 800 is generated, to make sure than
 ## at least 800 simulations are available when running the computations on the
-## cluster and some of the tasks fail)
+## cluster and some of the tasks fail due to time/memory limit)
 nulls <- sapply(results_logistic_1, is.null)
 sum(nulls)
 results_logistic_1 <- results_logistic_1[!nulls]
@@ -26,9 +25,9 @@ results_logistic_1 <- results_logistic_1[!nulls]
 ## the "epsilon" for the E-CRT. Select the desired value in 0, 0.01, 0.05, 0.1
 eps <- 0.05
 eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
- results_logistic_1 <- lapply(
- results_logistic_1,
- function(x) x[-eps_remove]
+results_logistic_1 <- lapply(
+  results_logistic_1,
+  function(x) x[-eps_remove]
 )
 
 ## the type I level errors to consider; containers for rejection rates of CRT 
@@ -47,7 +46,7 @@ for (k in seq_along(results_logistic_1)) {
   id <- tmp$id
   rejections_k <- vector("list", 6)
   for (j in 1:2) {
-    e <- cumprod(do.call(get_e, cbind(tmp[[j]], eps = 0)))
+    e <- cumprod(do.call(get_e, c(as.list(tmp[[j]]), M = 500, unbiased = TRUE)))
     rejections <- get_first_rejection(e = e, alphas = alphas, tmax = 2000)
     rejections$method <- names(tmp)[j]
     rejections_k[[j]] <- rejections
@@ -125,9 +124,9 @@ for (k in seq_along(betas)) {
   tmp$method <- "asymptotic"
   tmp$data <- vector("list", 1)
   tmp$beta <- betas[k]
-  tmp$average <- Inf
   tmp$power_achieved <- is.finite(tmp$worst)
   tmp$worst <- pmin(2000, tmp$worst)
+  tmp$average <- tmp$worst
   df_asymptotic[[k]] <- tmp
   
   ## for CRT
@@ -144,9 +143,9 @@ for (k in seq_along(betas)) {
   tmp$method <- "crt"
   tmp$data <- vector("list", 1)
   tmp$beta <- betas[k]
-  tmp$average <- Inf
   tmp$power_achieved <- is.finite(tmp$worst)
   tmp$worst <- pmin(2000, tmp$worst)
+  tmp$average <- tmp$worst
   df_crt[[k]] <- tmp
 }
 df_asymptotic <- do.call(rbind, df_asymptotic)
@@ -155,7 +154,7 @@ df_crt <- do.call(rbind, df_crt)
 ## combine all results
 df <- rbind(df,  df_crt, df_asymptotic) %>%
   gather(key = "type", value = "size", average, worst) %>%
-  filter(!(method %in% c("crt", "asymptotic") & type == "average")) %>%
+  # filter(!(method %in% c("crt", "asymptotic") & type == "average")) %>%
   ungroup() %>%
   mutate(
     type = factor(
@@ -172,74 +171,73 @@ df <- rbind(df,  df_crt, df_asymptotic) %>%
   )
 
 
-## plot  
-simulation_alternative <- ggplot() +
-  geom_point(
-    data = df,
-    aes(
-      x = betap,
-      y = size,
-      color = method,
-      group = interaction(method, type),
-      shape = method
-    ),
-    alpha = 0.2,
-    cex = 2
-  ) +
-  geom_point(
-    data = filter(df, power_achieved),
-    aes(
-      x = betap,
-      y = size,
-      color = method,
-      group = interaction(method, type),
-      shape = method
-    ),
-    cex = 2
-  ) +
-  geom_line(
-    data = df,
-    aes(
-      x = betap,
-      y = size,
-      color = method,
-      group = interaction(method, type),
-      linetype = type
-    ),
-    alpha = 0.2,
-    lwd = 0.5
-  ) +
-  geom_line(
-    data = filter(df, power_achieved),
-    aes(
-      x = betap,
-      y = size,
-      color = method,
-      group = interaction(method, type),
-      linetype = type,
-    ),
-    lwd = 0.5
-  ) +
-  ggthemes::scale_color_colorblind() +
-  scale_linetype_manual(values = c(5, 1)) +
-  facet_grid(rows = vars(alphas), cols = vars(beta)) +
-  labs(
-    x = expression(beta),
-    y = "Sample size",
-    linetype = element_blank(),
-    color = element_blank(),
-    shape = element_blank()
-  ) +
-  theme(legend.position = "bottom") +
-  guides(
-    color = guide_legend(nrow = 2, byrow = TRUE),
-    linetype = guide_legend(nrow = 2, byrow = TRUE)
+## generate plot
+df <- df %>%
+  mutate(
+    lty = c("1","5")[1 + (type == "Average" & method %in% c("CRT", "LRT"))],
+    type = (as.character(factor(
+      type,
+      levels = c("Worst case", "Average"),
+      labels = c("N(beta, eta)", "N[av](beta,eta)")
+    )))
   )
 
-## save the plot
-pdf(width = 8, height = 6, file = paste0("simulation_alternative_eps", eps, ".pdf"))
-print(simulation_alternative)
-dev.off()
+theme_set(theme_bw(base_size = 13.5))
+for (a in c(0.01, 0.05)) { # for both alphas (0.01, 0.05)
+  simulation_alternative <- ggplot() +
+    geom_point(
+      data = filter(df, power_achieved & alphas == a),
+      aes(
+        x = betap,
+        y = size,
+        color = method,
+        group = method,
+        shape = method,
+      ),
+      cex = 2
+    ) +
+    geom_line(
+      data = filter(df, power_achieved & alphas == a),
+      aes(
+        x = betap,
+        y = size,
+        color = method,
+        group = method,
+        linetype = lty
+      ),
+      lwd = 0.5
+    ) +
+    ggthemes::scale_color_colorblind() +
+    scale_linetype_manual(values = c(1, 5)) +
+    facet_grid(rows = vars(type), cols = vars(beta), labeller = label_parsed) +
+    labs(
+      x = expression(beta),
+      y = "Sample size",
+      linetype = element_blank(),
+      color = element_blank(),
+      shape = element_blank()
+    ) +
+    theme(legend.position = "right", legend.text = element_text(size = 12)) +
+    guides(
+      color = guide_legend(ncol = 1, byrow = TRUE),
+      linetype = "none"
+    )
+  
+  
+  ## save the plot
+  plot_name <- paste0(
+    "revised_simulation_alternative_eps",
+    eps,
+    "_alpha_",
+    a,
+    ".pdf"
+  )
+
+  pdf(width = 8, height = 4, file = plot_name)
+  print(simulation_alternative)
+  dev.off()
+}
+
 
 #-------------------------------------------------------------------------------
 # comparison with group sequential methods
@@ -249,7 +247,7 @@ dev.off()
 source("simulation_functions.R")
 
 ## load data (change path for different variants)
-load("<path_to_simulation_output>")
+load() # enter here path to output from simulation_1
 
 ## remove null entries (see above)
 nulls <- sapply(results_logistic_1, is.null)
@@ -258,11 +256,11 @@ results_logistic_1 <- results_logistic_1[!nulls]
 
 ## select "epsilon" for the E-CRT (see above)
 eps <- 0.05
-# eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
-# results_logistic_1 <- lapply(
-#   results_logistic_1,
-#   function(x) x[-eps_remove]
-# )
+eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
+results_logistic_1 <- lapply(
+  results_logistic_1,
+  function(x) x[-eps_remove]
+)
 
 ## fix type I error level, maximum sample size to be considered, and the number
 ## of stops for group sequential methods
@@ -307,7 +305,7 @@ for (k in seq_along(results_logistic_1)) {
   betap <- tmp$betap
   id <- tmp$id
   rejections_k <- vector("list", 2 * variants + 1)
-  e <- cumprod(do.call(get_e, cbind(tmp[[1]][seq_len(tmax), ], eps = 0)))
+  e <- cumprod(do.call(get_e, c(as.list(tmp[[1]][seq_len(tmax), ]), M = 500, unbiased = TRUE)))
   rejections <- get_first_rejection(e = e, alphas = alphas, tmax = tmax)
   rejections$method <- names(tmp)[1]
   rejections$betap <- betap
@@ -355,6 +353,7 @@ results_logistic_1 %>%
   arrange(alphas, method)
 
 ## plot
+theme_set(theme_bw(base_size = 12))
 grpseq <- results_logistic_1 %>%
   filter(alphas == 0.05 & betap > 0) %>%
   filter(method %in% c(paste0("ecrt", eps), "of_20", "pk_20")) %>%
@@ -376,28 +375,43 @@ grpseq <- results_logistic_1 %>%
   scale_linetype_manual(values = c("solid", "longdash", "twodash")) +
   facet_wrap(.~betap, nrow = 2) +
   coord_cartesian(xlim = c(0, tmax)) +
-  theme(legend.position = "bottom") +
+  theme(
+    legend.position = "right",
+    axis.text.x = element_text(size = 8),
+    legend.text = element_text(size = 10)
+  ) +
+  scale_x_continuous(
+    breaks = c(0, 1000, 2000)
+  ) +
   ggthemes::scale_color_colorblind() +
   labs(
     x = "Sample size at rejection",
     y = "Empirical distribution function",
     color = element_blank(),
     linetype = element_blank()
+  )  +
+  guides(
+    color = guide_legend(ncol = 1, byrow = TRUE)
   )
 
 ## export the figure
-pdf(height = 4, width = 8, file = "simulation_group_sequential_negative_cor.pdf")
+plot_name <- paste0("revised_simulation_group_sequential_eps", eps, ".pdf")
+
+pdf(height = 3.5, width = 8, file = plot_name)
 print(grpseq)
 dev.off()
 
 #-------------------------------------------------------------------------------
 # simulation 2
 rm(list = ls())
-load("<path_to_simulation_output>")
+
+load() # enter path to output of simulation_2
+
 source("simulation_functions.R")
 
 nulls <- sapply(results_logistic_2, is.null)
 sum(nulls)
+
 results_logistic_2 <- results_logistic_2[!nulls]
 
 n_crt <- c(200, 400, 1000, 1400, 2000)
@@ -407,7 +421,7 @@ for (j in seq_along(results_logistic_2)) {
   for (i in seq_along(tmp)) {
     tmpi <- tmp[[i]]
     tmpi[[1]] <- get_first_rejection(
-      cumprod(get_e(tmpi[[1]]$numerator, tmpi[[1]]$denominator, tmpi[[1]]$y)),
+      cumprod(do.call(get_e, c(as.list(tmpi[[1]]), M = 500, unbiased = TRUE))),
       alphas = alphas,
       tmax = Inf
     )
@@ -448,7 +462,8 @@ misspecified_model_data <- results_logistic_2 %>%
   ) %>%
   group_by(alphas, theta, misspec, n_sample, method, update_reuse) %>%
   summarise(rejected = mean(rejected))
-  
+
+theme_set(theme_bw(base_size = 13.5))
 misspecified_model <- ggplot() +
   geom_hline(yintercept = 0.05, lty = 3) +
   geom_line(
@@ -466,7 +481,7 @@ misspecified_model <- ggplot() +
   coord_cartesian(ylim = c(0, 0.25)) +
   theme(legend.position = "none") +
   labs(
-    x = expression(eta),
+    x = expression(xi),
     y = "Rejection rate",
     color = element_blank(),
     shape = element_blank()
@@ -537,11 +552,14 @@ recycle_data <- results_logistic_2 %>%
   scale_color_colorblind() +
   ggtitle("(c)")
 
-pdf(width = 8, height = 6, file = "simulation_robustness.pdf")
-ggarrange(
+robustness_plot <- ggarrange(
   misspecified_model,
   ggarrange(finite_sample, recycle_data, ncol = 2, widths = c(1, 1.3)),
   nrow = 2
 )
+
+pdf(width = 8, height = 6, file = paste0("simulation_robustnes.pdf"))
+print(robustness_plot)
 dev.off()
+
 
