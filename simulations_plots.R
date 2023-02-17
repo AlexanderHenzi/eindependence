@@ -106,7 +106,7 @@ rejections_crt <- rejections_crt / 800
 df_asymptotic <- vector("list", length(betas))
 df_crt <- vector("list", length(betas))
 for (k in seq_along(betas)) {
-  ## for LRT (aymptotic). The "minimum" sample size is searched over the sizes
+  ## for LRT, CRT: The "minimum" sample size is searched over the sizes
   ## 25, 50, ..., 1975, 2000 which are actually available. In the "worst case",
   ## the actual minimum might be achieved at size 26, 51, ..., so we subtract
   ## 25 from the result to make sure that the minimum sample size is not
@@ -114,8 +114,8 @@ for (k in seq_along(betas)) {
   tmp <- t(apply(
     rejections_asymptotic,
     c(2, 3),
-    function(x) min(which(x >= betas[k]))) * 25
-  )
+    function(x) pmax(1, min(which(x >= betas[k])) - 1) * 25
+  ))
   tmp <- cbind(betap = seq(0, 1, 0.1), tmp)
   colnames(tmp) <- c("betap", alphas)
   tmp <- as_tibble(tmp)
