@@ -406,7 +406,7 @@ running_mle_logistic <- function(x, y, z, n0) {
   formula_null <- formula(paste("y ~", paste(colnames(z), collapse = "+")))
   q <- ncol(data)
   for (k in (n0+1):(n0 + q)) {
-    # when the number of variables is smaller than the sample size, the MLE in
+    # when the number of variables is larger than the sample size, the MLE in
     # the denominator is a perfect fit, so the denominator equals 1
     model_full <- try_logistic_glm(formula_full, data[seq_len(k - 1), ])
     if (isFALSE(model_full)) next
