@@ -13,7 +13,7 @@ q <- 4
 
 ## correlation (positive/negative correlations); set to
 ##    "pos" for all correlations positive
-##     "negative_cor" for positive and negative correlations
+##    "negative_cor" for positive and negative correlations
 correlation <- "pos"
 
 ## not_penalize_rmle; do (or not) penalize the parameter of interest in RMLE
@@ -23,7 +23,7 @@ not_penalize_rmle <- TRUE
 
 # check for validity of parameter values
 if (!is.numeric(q) || length(q) != 1)
-  stop("invalid p")
+  stop("invalid q")
 if (!(identical(correlation, "pos") || identical(correlation, "negative_cor")))
   stop("invalid correlation")
 if (!(isTRUE(not_penalize_rmle) || isFALSE(not_penalize_rmle)))

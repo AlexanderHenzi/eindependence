@@ -14,7 +14,7 @@ library(ggpubr)
 eps <- 0.05 
 
 ## path: path to the collected output of simulation_1
-path <- "/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_1.rda"
+path <- 
 
 #-------------------------------------------------------------------------------
 ## load functions and data

@@ -9,7 +9,7 @@ library(ggpubr)
 # parameters
 
 ## path to collected output of simulation_2
-path <- "/home/alexander/Work/Ablage/big_data_sets/e_logistic_regression/results_logistic_2_q8.rda"
+path <- 
 
 #-------------------------------------------------------------------------------
 ## load functions and data
