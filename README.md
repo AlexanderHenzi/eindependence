@@ -10,23 +10,23 @@ To reproduce the simulations under the alternative (files in *simulation_1/2*) (
 
 The table below gives an overview of the parameters in the files for reproducing all figures and tables in the article and supplement. Figures for other parameter combinations are contained in the folder *additional_figures*.
 
-| Objects            | Files                                | Parameters                                                          | 
-| ------------------ | ------------------------------------ | --------------------------------------------------------            |
-| Table 1            | simulation_1.R                       | *q = 4*, *correlation = "pos"*, *not_penalize_rmle = TRUE*          |
-|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                        |
-| Figures 1, 2, S4   | simulation_1.R                       | *q = 4*, *correlation = "pos"*, *not_penalize_rmle = TRUE*          |
-|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                        |
-| Figure 3           | data_application.R                   | none                                                                |
-| Figure S1          | simulation_1.R                       | *q = 4*, *correlation = "pos"*, *not_penalize_rmle = TRUE*          |
-|                    | simulation_1_plots_table.R           | *eps = 0*                                                           |
-| Figure S2          | simulation_2_tests.R                 | none                                                                |
-| Figure S3          | simulation_2.R                       | *q = 4*, *correlation = "pos"*                                      |
-|                    | simulation_2_plots.R                 | none                                                                |
-| Figures S5, S7     | simulation_1.R                       | *q = 8*, *correlation = "pos"*, *not_penalize_rmle = TRUE*          |
-|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                        |
-| Figures S6, S8     | simulation_1.R                       | *q = 4*, *correlation = "negative_cor"*, *not_penalize_rmle = TRUE* |
-|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                        |
-| Figure S9          | simulation_2.R                       | *q = 8*, *correlation = "pos"*                                      |
-|                    | simulation_2_plots.R                 | none                                                                |
-| Figure S10         | simulation_2.R                       | *q = 4*, *correlation = "negative_cor"*                             |
-|                    | simulation_2_plots.R                 | none                                                                |
+| Objects            | Files                                | Parameters                                                           | 
+| ------------------ | ------------------------------------ | --------------------------------------------------------             |
+| Table 1            | simulation_1.R                       | *q = 4*, *correlation = "pos"*, *not_penalize_rmle = FALSE*          |
+|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                         |
+| Figures 1, 2, S4   | simulation_1.R                       | *q = 4*, *correlation = "pos"*, *not_penalize_rmle = FALSE*          |
+|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                         |
+| Figure 3           | data_application.R                   | none                                                                 |
+| Figure S1          | simulation_1.R                       | *q = 4*, *correlation = "pos"*, *not_penalize_rmle = FALSE*          |
+|                    | simulation_1_plots_table.R           | *eps = 0*                                                            |
+| Figure S2          | simulation_2_tests.R                 | none                                                                 |
+| Figure S3          | simulation_2.R                       | *q = 4*, *correlation = "pos"*                                       |
+|                    | simulation_2_plots.R                 | none                                                                 |
+| Figures S5, S7     | simulation_1.R                       | *q = 8*, *correlation = "pos"*, *not_penalize_rmle = FALSE*          |
+|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                         |
+| Figures S6, S8     | simulation_1.R                       | *q = 4*, *correlation = "negative_cor"*, *not_penalize_rmle = FALSE* |
+|                    | simulation_1_plots_table.R           | *eps = 0.05*                                                         |
+| Figure S9          | simulation_2.R                       | *q = 8*, *correlation = "pos"*                                       |
+|                    | simulation_2_plots.R                 | none                                                                 |
+| Figure S10         | simulation_2.R                       | *q = 4*, *correlation = "negative_cor"*                              |
+|                    | simulation_2_plots.R                 | none                                                                 |
