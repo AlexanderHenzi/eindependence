@@ -3,9 +3,33 @@
 source("simulation_functions.R")
 
 #-------------------------------------------------------------------------------
-# parameters
+# parameters for different settings
+
+## dimension; the following values were tested
+##     q = 4
+##     q = 8
+q <- 4
+
+## correlation (positive/negative correlations); set to
+##    "pos" for all correlations positive
+##    "negative_cor" for positive and negative correlations
+correlation <- "pos"
+
+# check for validity of parameter values
+if (!is.numeric(q) || length(q) != 1)
+  stop("invalid p")
+if (!(identical(correlation, "pos") || identical(correlation, "negative_cor")))
+  stop("invalid correlation")
+
+#-------------------------------------------------------------------------------
+# other fixed or derived parameters, do not change
 n <- 2000
-p <- 4
+p <- q
+if (correlation == "pos") {
+  correlation <- c(1, 1)
+} else {
+  correlation <- c(1, -1)
+}
 id <- as.numeric(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 specs1 <- expand.grid(
   theta = seq(0, 2, 0.05),
@@ -47,9 +71,9 @@ for (k in seq_len(nrow(specs))) {
   #-----------------------------------------------------------------------------
   # data generation and computation of e-values (quadratic error)
   set.seed(k * 100 + id)
-  
+
   Mu <- rep(0, p)
-  Sigma <- toeplitz(1 / seq_len(p) * c(1, -1))
+  Sigma <- toeplitz(1 / seq_len(p) * correlation)
   z <- MASS::mvrnorm(n = n, mu = Mu, Sigma = Sigma)
   x <- z[, p]
   z <- z[, -p]
@@ -108,5 +132,8 @@ for (k in seq_len(nrow(specs))) {
 
 #-------------------------------------------------------------------------------
 # collect and export results
-save(list = "out", file = paste0("simulation_2_", id, ".rda"))
+save(
+  list = c("out", "p", "correlation"),
+  file = paste0("simulation_2_", id, ".rda")
+)
 

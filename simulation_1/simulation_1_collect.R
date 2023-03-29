@@ -13,4 +13,12 @@ for (k in seq_len(m)) {
   betap_count[betap_k_pos] <- betap_count[betap_k_pos] + 1
   results_logistic_1[[k]] <- out
 }
-save(list = "results_logistic_1", file = "results_logistic_1.rda")
+save(
+  list = c(
+    "results_logistic_1",
+    "p",
+    "correlation",
+    "not_penalize_rmle"
+  ),
+  file = "simulation_1.rda"
+)

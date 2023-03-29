@@ -10,4 +10,7 @@ for (k in seq_len(m)) {
   load(name)
   results_logistic_2[[k]] <- out
 }
-save(list = "results_logistic_2", file = "results_logistic_2.rda")
+save(
+  list = c("results_logistic_2", "correlation", "p"),
+  file = "simulation_2.rda"
+)
