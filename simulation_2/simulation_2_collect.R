@@ -1,3 +1,18 @@
+# --------------------------------------------------------
+# argument(s) to this script:
+#   1) fileName; where to save the .rda file.
+#      DO NOT INCLUDE THE EXTENSION!
+# example usage:
+# Rscript simulation_1_collect.R "simulation_1"
+
+if(length(args) == 0){
+  fileName = "simulation_1"
+} else if (length(args) > 1) {
+  stop("Invalid number of arguments.")
+} else {
+  fileName = toString(args[1])
+}
+
 m <- 880
 results_logistic_2 <- vector("list", m)
 fl <- list.files()
@@ -12,5 +27,5 @@ for (k in seq_len(m)) {
 }
 save(
   list = c("results_logistic_2", "correlation", "p"),
-  file = "simulation_2.rda"
+  file = paste(fileName, "rda", sep=".")
 )
