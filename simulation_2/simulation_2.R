@@ -2,24 +2,37 @@
 # functions and packages
 source("simulation_functions.R")
 
+args = commandArgs(trailingOnly = TRUE)
 #-------------------------------------------------------------------------------
+# arguments to this script represent the following parameters respectively:
+#   1) dimension; dimension of the covariate (and thus beta) vectors;
+#      integer valued (default: 4); values 4 and 8 were tested.
+#   2) correlation; whether to only include positive correlations or mixed
+#      one of {"pos", "negative_cor"} (default: "pos");
+# Either specify all parameters or none, example:
+# - Rscript simulation_2.R
+# - Rscript simulation_2.R 8 "negative_cor" FALSE
 # parameters for different settings
 
-## dimension; the following values were tested
-##     q = 4
-##     q = 8
-q <- 4
-
-## correlation (positive/negative correlations); set to
-##    "pos" for all correlations positive
-##    "negative_cor" for positive and negative correlations
-correlation <- "pos"
+if(length(args) == 0){
+  ## Default parameter settings
+  q <- 4
+  correlation <- "pos"
+} else if (length(args) != 2) {
+  stop("invalid number of arguments")
+} else  {
+  q = as.numeric(args[1])
+  if (q != args[1]) {
+    stop("Invalid value for parameter q")
+  }
+  correlation = args[2]
+}
 
 # check for validity of parameter values
 if (!is.numeric(q) || length(q) != 1)
-  stop("invalid p")
+  stop("invalid value for parameter q")
 if (!(identical(correlation, "pos") || identical(correlation, "negative_cor")))
-  stop("invalid correlation")
+  stop("invalid value for parameter correlation")
 
 #-------------------------------------------------------------------------------
 # other fixed or derived parameters, do not change
