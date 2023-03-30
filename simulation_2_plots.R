@@ -7,9 +7,12 @@ library(ggpubr)
 
 #-------------------------------------------------------------------------------
 # parameters
+# argument(s) to this script represent the following:
+#   1) path; the path to the collected output of simulation_2;
+# parameter must be passed, e.g.:
+# Rscript simulation_2_plots.R "simulation_2.rda"
 
-## path to collected output of simulation_2
-path <- 
+path <- toString(args[2])
 
 #-------------------------------------------------------------------------------
 ## load functions and data
