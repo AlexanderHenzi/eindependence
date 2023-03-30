@@ -30,6 +30,7 @@ for (k in seq_len(m)) {
   if (betap_count[betap_k_pos] == 800) next
   betap_count[betap_k_pos] <- betap_count[betap_k_pos] + 1
   results_logistic_1[[k]] <- out
+  unlink(name)
 }
 save(
   list = c(

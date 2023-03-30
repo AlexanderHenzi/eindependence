@@ -24,6 +24,7 @@ for (k in seq_len(m)) {
   count <- count + 1
   load(name)
   results_logistic_2[[k]] <- out
+  unlink(name)
 }
 save(
   list = c("results_logistic_2", "correlation", "p"),
