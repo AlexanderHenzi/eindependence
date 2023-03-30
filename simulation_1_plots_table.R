@@ -5,16 +5,24 @@ library(ggthemes)
 library(ldbounds)
 library(ggpubr)
 
+args = commandArgs(trailingOnly = TRUE)
+if(length(args) != 2) {
+  stop("Please specify an epsilon and path")
+}
 #-------------------------------------------------------------------------------
 # sample size for different type I error and power (with results of simulation_1.R)
 
 # parameters -------------------------------------------------------------------
 
-## epsilon: choose one value in 0, 0.01, 0.05, 0.1
-eps <- 0.05 
+## argument 1 (epsilon): pass value in 0, 0.01, 0.05, 0.1
+eps_vals = c(0, 0.01, 0.05, 0.1)
+eps <- as.numeric(args[1])
+if (!eps %in% eps_vals) {
+  stop("Invalid value for parameter epsilon")
+}
 
-## path: path to the collected output of simulation_1
-path <- 
+## argument 2 (path): path to the collected output of simulation_1;
+path <- toString(args[2])
 
 #-------------------------------------------------------------------------------
 ## load functions and data
