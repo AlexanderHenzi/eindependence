@@ -1,3 +1,21 @@
+args = commandArgs(trailingOnly = TRUE)
+
+# --------------------------------------------------------
+# argument(s) to this script:
+#   1) fileName; where to save the .rda file.
+#      DO NOT INCLUDE THE EXTENSION!
+# example usage:
+# Rscript simulation_1_collect.R "simulation_1"
+
+if(length(args) == 0){
+  fileName = "simulation_1"
+} else if (length(args) > 1) {
+  stop("Invalid number of arguments.")
+} else {
+  fileName = toString(args[1])
+}
+
+
 m <- 880 * 11
 results_logistic_1 <- vector("list", m)
 fl <- list.files()
@@ -20,5 +38,5 @@ save(
     "correlation",
     "not_penalize_rmle"
   ),
-  file = "simulation_1.rda"
+  file = paste(fileName, "rda", sep=".")
 )
