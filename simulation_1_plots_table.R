@@ -38,6 +38,8 @@ if (is.null(not_penalize_rmle)) {
   penalization <- "_not_penalize"
 }
 
+tmax = 2000
+
 ## remove null entries (a higher number than 800 is generated, to make sure than
 ## at least 800 simulations are available when running the computations on the
 ## cluster and some of the tasks fail due to time/memory limit)
@@ -56,7 +58,7 @@ results_logistic_1 <- lapply(
 ## with a total of 80 batches).
 alphas <- c(0.01, 0.05)
 rejections_crt <- rejections_asymptotic <- 
-  array(dim = c(80, length(alphas), 11), 0)
+  array(dim = c(tmax/25, length(alphas), 11), 0)
 
 ## compute e-values and rejection times, for each simulation
 for (k in seq_along(results_logistic_1)) {
@@ -68,13 +70,13 @@ for (k in seq_along(results_logistic_1)) {
   rejections_k <- vector("list", 6)
   for (j in 1:2) {
     e <- cumprod(do.call(get_e, c(as.list(tmp[[j]]), M = 500, unbiased = TRUE)))
-    rejections <- get_first_rejection(e = e, alphas = alphas, tmax = 2000)
+    rejections <- get_first_rejection(e = e, alphas = alphas, tmax = tmax)
     rejections$method <- names(tmp)[j]
     rejections_k[[j]] <- rejections
   }
   for (j in 3:4) {
     e <- tmp[[j]]$M
-    rejections <- get_first_rejection(e = e, alphas = alphas, tmax = 2000)
+    rejections <- get_first_rejection(e = e, alphas = alphas, tmax = tmax)
     rejections$method <- names(tmp)[j]
     rejections_k[[j]] <- rejections
   }
@@ -113,7 +115,7 @@ df <- results_logistic_1 %>%
       .f = function(dat) {
         lapply(
           betas,
-          function(b) find_sample_size(dat$size, dat$rejected, b, 2000)
+          function(b) find_sample_size(dat$size, dat$rejected, b, tmax)
         )
       }
     )
@@ -146,7 +148,7 @@ for (k in seq_along(betas)) {
   tmp$data <- vector("list", 1)
   tmp$beta <- betas[k]
   tmp$power_achieved <- is.finite(tmp$worst)
-  tmp$worst <- pmin(2000, tmp$worst)
+  tmp$worst <- pmin(tmax, tmp$worst)
   tmp$average <- tmp$worst
   df_asymptotic[[k]] <- tmp
   
@@ -165,7 +167,7 @@ for (k in seq_along(betas)) {
   tmp$data <- vector("list", 1)
   tmp$beta <- betas[k]
   tmp$power_achieved <- is.finite(tmp$worst)
-  tmp$worst <- pmin(2000, tmp$worst)
+  tmp$worst <- pmin(tmax, tmp$worst)
   tmp$average <- tmp$worst
   df_crt[[k]] <- tmp
 }
@@ -285,7 +287,6 @@ results_logistic_1 <- lapply(
 ## fix type I error level, maximum sample size to be considered, and the number
 ## of stops for group sequential methods
 alphas <- c(0.01, 0.05)
-tmax <- 2000
 nstops <- c(5, 10, 20, 40)
 stop_seq <- 
   lapply(nstops, function(x) seq(tmax / 25 /x, tmax / 25, tmax / 25 / x))
@@ -414,7 +415,7 @@ grpseq <- results_logistic_1 %>%
     legend.text = element_text(size = 10)
   ) +
   scale_x_continuous(
-    breaks = c(0, 1000, 2000)
+    breaks = c(0, 1000, tmax)
   ) +
   ggthemes::scale_color_colorblind() +
   labs(
