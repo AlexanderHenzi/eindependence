@@ -13,7 +13,7 @@ args = commandArgs(trailingOnly = TRUE)
 #   3) not_penalize_rmle; do or do not penalize the parameter of interest in RMLE
 #      boolean {FALSE, TRUE} (default: TRUE);
 # Either specify all parameters or none, example:
-# - Rscript simualtion_1.R
+# - Rscript simulation_1.R
 # - Rscript simulation_1.R 8 "negative_cor" FALSE
 
 if(length(args) == 0){
