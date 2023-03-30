@@ -3,31 +3,47 @@
 source("simulation_functions.R")
 require(MASS)
 
+args = commandArgs(trailingOnly = TRUE)
 #-------------------------------------------------------------------------------
-# parameters for different settings
+# arguments to this script represent the following parameters respectively:
+#   1) dimension; dimension of the covariate (and thus beta) vectors;
+#      integer valued (default: 4); values 4 and 8 were tested.
+#   2) correlation; whether to only include positive correlations or mixed
+#      one of {"pos", "negative_cor"} (default: "pos");
+#   3) not_penalize_rmle; do or do not penalize the parameter of interest in RMLE
+#      boolean {FALSE, TRUE} (default: TRUE);
+# Either specify all parameters or none, example:
+# - Rscript simualtion_1.R
+# - Rscript simulation_1.R 8 "negative_cor" FALSE
 
-## dimension; the following values were tested
-##     q = 4
-##     q = 8
-q <- 4
+if(length(args) == 0){
+  ## Default parameter settings
 
-## correlation (positive/negative correlations); set to
-##    "pos" for all correlations positive
-##    "negative_cor" for positive and negative correlations
-correlation <- "pos"
-
-## not_penalize_rmle; do (or not) penalize the parameter of interest in RMLE
-##     FALSE penalize all parameters (default setting in glmnet)
-##     TRUE do not penalize the parameter of interest (the first one, for x)
-not_penalize_rmle <- TRUE
-
+  q <- 4
+  correlation <- "pos"
+  not_penalize_rmle <- TRUE
+} else if (length(args) < 3) {
+  stop("invalid number of arguments")
+} else  {
+  q = as.numeric(args[1])
+  if (q != args[1]) {
+    stop("Invalid value for parameter q")
+  }
+  correlation = args[2]
+  not_penalize_rmle = args[3]
+  if (not_penalize_rmle == "TRUE") {
+    not_penalize_rmle = TRUE
+  } else if (not_penalize_rmle == "FALSE") {
+    not_penalize_rmle = FALSE
+  }
+}
 # check for validity of parameter values
 if (!is.numeric(q) || length(q) != 1)
-  stop("invalid q")
+  stop("invalid value for parameter q")
 if (!(identical(correlation, "pos") || identical(correlation, "negative_cor")))
-  stop("invalid correlation")
+  stop("invalid value for parameter correlation")
 if (!(isTRUE(not_penalize_rmle) || isFALSE(not_penalize_rmle)))
-  stop("invalid not_penalize_rmle")
+  stop("invalid value for parameter not_penalize_rmle")
 
 # ------------------------------------------------------------------------------
 ## parse to parameter names and values used below
