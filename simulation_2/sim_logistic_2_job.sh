@@ -4,10 +4,10 @@
 
 # First job - no dependencies
 # option 'parsable' formats job id to number (required!)
-jid1=$(sbatch --job-name="sim_logistic_2" --parsable sim_logistic_2_array.sh)
+jid1=$(sbatch --job-name="sim_logistic_2" --parsable simulation_2/sim_logistic_2_array.sh)
 
 # Second job collecting the results of first
 
-sbatch --job-name="sim_logistic_2_collect" --dependency=afterany:$jid1 sim_logistic_2_collect.sh
+sbatch --job-name="sim_logistic_2_collect" --dependency=afterany:$jid1 simulation_2/sim_logistic_2_collect.sh
 
 

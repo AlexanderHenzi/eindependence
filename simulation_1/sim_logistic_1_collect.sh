@@ -9,5 +9,5 @@
 #### Your shell commands below this line ####
 
 module load R
-R CMD BATCH --no-save --no-restore simulation_1_collect.R
+Rscript simulation_1/simulation_1_collect.R $name
 
