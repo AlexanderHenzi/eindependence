@@ -2,7 +2,7 @@
 
 This repository contains replication material and additional figures for the article
 
-Grünwald, Peter, Alexander Henzi, and Tyron Lardy. "Anytime Valid Tests of Conditional Independence Under Model-X." arXiv preprint [arXiv:2209.12637](https://arxiv.org/abs/2209.12637) (2022).
+Peter Grünwald, Alexander Henzi, and Tyron Lardy. "Anytime Valid Tests of Conditional Independence Under Model-X." arXiv preprint [arXiv:2209.12637](https://arxiv.org/abs/2209.12637) (2022).
  
 Code for the data application is given in the folder *data_application*. The file *simulation_functions.R* contains all functions used for the simulations in Section 4 of the article. The folder *simulation_1* contains the files to run the simulations for rejection rates under null and alternative hypothesis, and *simulation_2* the files for rejection rates under misspecification of the conditional distribution of X given Z. The code was run on a HPC cluster, with reproducible seed for the simulations, and the files *simulation_1.R* and *simulation_2.R* generate the output for a single run of the simulations, with parameters depending on the variable *id* and other manually specified parameters as explained in comments in the files.
 
