@@ -88,7 +88,7 @@ pvals <- crt_lrt_logistic(x = x, y = y, z = z, stops = seq(25, n, 25), sim_fun =
 
 #-------------------------------------------------------------------------------
 # export results
-out <- c(
+out <- list(
   ecrt0 = ecrt0,
   ecrt0.01 = ecrt0.01,
   ecrt0.05 = ecrt0.05,
