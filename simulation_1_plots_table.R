@@ -247,7 +247,7 @@ for (a in c(0.01, 0.05)) { # for both alphas (0.01, 0.05)
   
   plot_name <- paste0(
     "simulation_alternative_eps",
-    eps,
+    sub("0.", "",toString(eps)),
     dimension,
     corr_par,
     penalization,
@@ -378,7 +378,7 @@ table_1 <- results_logistic_1 %>%
 ## export table of rejection rates under the null
 filename <- paste0(
   "table_1_eps_",
-  eps,
+  sub("0.", "", toString(eps)),
   dimension,
   corr_par,
   penalization,
@@ -431,7 +431,7 @@ grpseq <- results_logistic_1 %>%
 ## export the figure
 plot_name <- paste0(
   "simulation_group_sequential_eps",
-  eps,
+  sub("0.", "", toString(eps)),
   dimension,
   corr_par,
   ".pdf"
