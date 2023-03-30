@@ -27,10 +27,10 @@ if (p == 8) {
 } else {
   dimension <- ""
 }
-if (all.equal(cor_par, c(1, -1))) {
-  correlation <- "_negative_cor"
+if (identical(correlation, c(1, -1))) {
+  corr_par <- "_negative_cor"
 } else {
-  correlation <- ""
+  corr_par <- ""
 }
 if (is.null(not_penalize_rmle)) {
   penalization <- ""
@@ -249,7 +249,7 @@ for (a in c(0.01, 0.05)) { # for both alphas (0.01, 0.05)
     "simulation_alternative_eps",
     eps,
     dimension,
-    correlation,
+    corr_par,
     penalization,
     "_alpha_",
     a,
@@ -380,7 +380,7 @@ filename <- paste0(
   "table_1_eps_",
   eps,
   dimension,
-  correlation,
+  corr_par,
   penalization,
   ".txt"
 )
@@ -433,7 +433,7 @@ plot_name <- paste0(
   "simulation_group_sequential_eps",
   eps,
   dimension,
-  correlation,
+  corr_par,
   ".pdf"
 )
 
