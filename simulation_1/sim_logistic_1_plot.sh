@@ -10,5 +10,5 @@
 #### Your shell commands below this line ####
 
 module load R
-Rscript simulation_1_plots_table.R $path
+Rscript simulation_1_plots_table.R $eps $path
 
