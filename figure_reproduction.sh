@@ -39,11 +39,11 @@ sbatch -W --job-name="sim_logistic_2_3" --parsable --export=q=4,corr="negative_c
 sbatch --job-name="sim_logistic_2_collect_3" --parsable -W --export=name="simulation_2_4neg" simulation_2/sim_logistic_2_collect.sh
 
 # produces Figure S3
-sbatch --job-name="sim_logistic_2_plot_1" --parsable ==export=path="simulation_2_4pos" simulation_2/sim_logistic_2_plot.sh
+sbatch --job-name="sim_logistic_2_plot_1" --parsable --export=path="simulation_2_4pos" simulation_2/sim_logistic_2_plot.sh
 # produces Figure S9
-sbatch --job-name="sim_logistic_2_plot_1" --parsable ==export=path="simulation_2_8pos" simulation_2/sim_logistic_2_plot.sh
+sbatch --job-name="sim_logistic_2_plot_1" --parsable --export=path="simulation_2_8pos" simulation_2/sim_logistic_2_plot.sh
 # produces Figure S10
-sbatch --job-name="sim_logistic_2_plot_1" --parsable ==export=path="simulation_2_4neg" simulation_2/sim_logistic_2_plot.sh
+sbatch --job-name="sim_logistic_2_plot_1" --parsable --export=path="simulation_2_4neg" simulation_2/sim_logistic_2_plot.sh
 
 # comment this line out for troubleshooting
 rm -r outfiles
