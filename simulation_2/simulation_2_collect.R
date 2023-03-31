@@ -6,7 +6,7 @@
 # Rscript simulation_1_collect.R "simulation_1"
 
 if(length(args) == 0){
-  fileName = "simulation_1"
+  fileName = "simulation_2"
 } else if (length(args) > 1) {
   stop("Invalid number of arguments.")
 } else {
