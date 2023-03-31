@@ -1,3 +1,4 @@
+args = commandArgs(trailingOnly = TRUE)
 # --------------------------------------------------------
 # argument(s) to this script:
 #   1) fileName; where to save the .rda file.
