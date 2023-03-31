@@ -2,6 +2,7 @@
 #SBATCH --mail-user=alexander.henzi@stat.unibe.ch
 #SBATCH --mail-type=end,fail
 #SBATCH --job-name="sim_logistic_1_collect"
+#SBATCH --output="outfiles/collect_%j.out"
 #SBATCH --time=00:30:00
 #SBATCH --mem-per-cpu=16G
 #SBATCH --partition=epyc2

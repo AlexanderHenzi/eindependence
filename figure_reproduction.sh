@@ -4,6 +4,10 @@
 # note: if the array size in sim_logistic_1_array is much smaller than the maximum number of nodes/cores on the cluster,
 # there is a lot to be gained from optimizing this script, as all the array jobs currently run consecutively.
 #
+#
+
+mkdir -p outfiles
+
 # simulation 1 (first job runs simulations on an array, second job collects the data)
 sbatch -W --job-name="sim_logistic_1_1" --parsable --export=q=4,corr="pos",pen="FALSE" simulation_1/sim_logistic_1_array.sh
 sbatch --job-name="sim_logistic_1_collect_1" --parsable -W --export=name="simulation_1_4posfalse" simulation_1/sim_logistic_1_collect.sh
@@ -40,3 +44,6 @@ sbatch --job-name="sim_logistic_2_plot_1" --parsable ==export=path="simulation_2
 sbatch --job-name="sim_logistic_2_plot_1" --parsable ==export=path="simulation_2_8pos" simulation_2/sim_logistic_2_plot.sh
 # produces Figure S10
 sbatch --job-name="sim_logistic_2_plot_1" --parsable ==export=path="simulation_2_4neg" simulation_2/sim_logistic_2_plot.sh
+
+# comment this line out for troubleshooting
+rm -r outfiles
