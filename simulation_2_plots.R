@@ -12,7 +12,7 @@ library(ggpubr)
 # parameter must be passed, e.g.:
 # Rscript simulation_2_plots.R "simulation_2.rda"
 
-path <- toString(args[2])
+path <- toString(args[1])
 
 #-------------------------------------------------------------------------------
 ## load functions and data
