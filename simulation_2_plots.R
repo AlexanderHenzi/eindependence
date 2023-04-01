@@ -5,6 +5,7 @@ library(ggthemes)
 library(ldbounds)
 library(ggpubr)
 
+args = commandArgs(trailingOnly = TRUE)
 #-------------------------------------------------------------------------------
 # parameters
 # argument(s) to this script represent the following:
@@ -25,7 +26,7 @@ if (p == 8) {
 } else {
   dimension <- ""
 }
-if (all.equal(correlation, c(1, -1))) {
+if (identical(correlation, c(1, -1))) {
   correlation <- "_negative_cor"
 } else {
   correlation <- ""
@@ -180,7 +181,7 @@ robustness_plot <- ggarrange(
 )
 
 plot_name <- paste0(
-  "simulation_robustness_",
+  "simulation_robustness",
   dimension,
   correlation,
   ".pdf"
