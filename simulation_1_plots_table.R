@@ -136,8 +136,9 @@ df <- results_logistic_1 %>%
   unnest(cols = results)
 
 ## for LRT and CRT
-rejections_asymptotic <- rejections_asymptotic / 800
-rejections_crt <- rejections_crt / 800
+nsamples = length(results_logistic_1) / 11
+rejections_asymptotic <- rejections_asymptotic / nsamples
+rejections_crt <- rejections_crt / nsamples
 df_asymptotic <- vector("list", length(betas))
 df_crt <- vector("list", length(betas))
 for (k in seq_along(betas)) {
@@ -145,7 +146,7 @@ for (k in seq_along(betas)) {
   ## 25, 50, ..., 1975, 2000 which are actually available. In the "worst case",
   ## the actual minimum might be achieved at size 26, 51, ..., so we subtract
   ## 25 from the result to make sure that the minimum sample size is not
-  ## over-estiamted.
+  ## over-estimated.
   tmp <- t(apply(
     rejections_asymptotic,
     c(2, 3),
