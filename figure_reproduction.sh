@@ -41,9 +41,9 @@ sbatch --job-name="sim_logistic_2_collect_3" --parsable -W --export=name="simula
 # produces Figure S3
 sbatch --job-name="sim_logistic_2_plot_1" --parsable --export=path="simulation_2_4pos.rda" simulation_2/sim_logistic_2_plot.sh
 # produces Figure S9
-sbatch --job-name="sim_logistic_2_plot_1" --parsable --export=path="simulation_2_8pos.rda" simulation_2/sim_logistic_2_plot.sh
+sbatch --job-name="sim_logistic_2_plot_2" --parsable --export=path="simulation_2_8pos.rda" simulation_2/sim_logistic_2_plot.sh
 # produces Figure S10
-sbatch --job-name="sim_logistic_2_plot_1" --parsable -W --export=path="simulation_2_4neg.rda" simulation_2/sim_logistic_2_plot.sh
+sbatch --job-name="sim_logistic_2_plot_3" --parsable -W --export=path="simulation_2_4neg.rda" simulation_2/sim_logistic_2_plot.sh
 
 # comment this line out for troubleshooting
 rm -r outfiles
