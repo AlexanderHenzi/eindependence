@@ -58,6 +58,7 @@ tmax = 2000
 nulls <- sapply(results_logistic_1, is.null)
 sum(nulls)
 results_logistic_1 <- results_logistic_1[!nulls]
+nsamples = length(results_logistic_1) / 11
 
 eps_remove <- (1:4)[-match(eps, c(0, 0.01, 0.05, 0.1))]
 results_logistic_1 <- lapply(
@@ -136,7 +137,6 @@ df <- results_logistic_1 %>%
   unnest(cols = results)
 
 ## for LRT and CRT
-nsamples = length(results_logistic_1) / 11
 rejections_asymptotic <- rejections_asymptotic / nsamples
 rejections_crt <- rejections_crt / nsamples
 df_asymptotic <- vector("list", length(betas))
