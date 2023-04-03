@@ -11,7 +11,7 @@ To reproduce all the simulations in the article and more (i) clone this reposito
 (iv) from the main directory, submit the batch job `figure_reproduction.sh`, i.e. `sbatch figure_reproduction.sh`
 (v) when the job finishes, the tables and figures can be found in the main directory. The default parameters for the figures in the article are `correlation = "pos"`, `not_penalize_rmle = FALSE`, and `q = 4`. For other values of these parameters (`correlation = "negative_cor"`, `not_penalize_rmle = TRUE`, or `q = 8`), the corresponding parameter is appended to the file name. For example, Table 1 corresponds to `table_1_eps05.txt`, Figure 1 to `simulation_alternative_eps05.pdf`, Figure 2 to `simulation_group_sequential_eps05.pdf`, etc.
 
-To further experiment with simulations under the null and alternative, parameters can be manually adjusted in the bash file `figure_reproduction.sh`. For instance, the parameter combination `--export=q=8,corr="pos",pen="TRUE"` runs simulations for the rejection rates with dimension `q = 8', positive correlation, and no penalization of the parameter of interest in the running MLE method.
+To further experiment with simulations under the null and alternative, parameters can be manually adjusted in the bash file `figure_reproduction.sh`. For instance, the parameter combination `--export=q=8,corr="pos",pen="TRUE"` runs simulations for the rejection rates with dimension `q = 8`, positive correlation, and no penalization of the parameter of interest in the running MLE method.
 
 The table below gives an overview of the parameters in the files for reproducing all figures and tables in the article and supplement. Figures for other parameter combinations are contained in the directory `additional_figures`.
 
