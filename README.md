@@ -13,7 +13,7 @@ To reproduce all the simulations in the article and more (i) clone this reposito
 
 To further experiment with simulations under the null and alternative, parameters can be manually adjusted in the bash file `figure_reproduction.sh`. For instance, the parameter combination `--export=q=8,corr="pos",pen="TRUE"` runs simulations for the rejection rates with dimension `q = 8`, positive correlation, and no penalization of the parameter of interest in the running MLE method.
 
-For the reproduction of Figure 3, download the bike share data set from https://s3.amazonaws.com/capitalbikeshare-data/2011-capitalbikeshare-tripdata.zip and save it in the folder `data_application`. Executing the file data_application.R produces Figure 3 from the paper. Figure S2 can be reproduced with the file `simulation_2_tests.R`.
+For the reproduction of Figure 3, download the bike share data set from https://s3.amazonaws.com/capitalbikeshare-data/2011-capitalbikeshare-tripdata.zip and save it in the folder `data_application`. Executing the file `data_application.R` produces Figure 3 from the paper. Figure S2 can be reproduced with the file `simulation_2_tests.R`.
 
 The table below gives an overview of the parameters in the files for reproducing all figures and tables in the article and supplement. Figures for other parameter combinations are contained in the directory `additional_figures`.
 
