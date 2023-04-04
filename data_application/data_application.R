@@ -146,7 +146,7 @@ case_study <- ggplot(plot_data) +
   scale_y_log10() +
   labs(x = "Date", y = "E-value")
 
-pdf(width = 8, height = 4, file = "revised_case_study.pdf")
+pdf(width = 8, height = 4, file = "case_study.pdf")
 case_study
 dev.off()
 

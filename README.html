@@ -359,53 +359,182 @@ display: none;
 
 
 <div id="anytime-valid-tests-of-conditional-independence-under-model-x" class="section level1">
-<h1>Anytime valid tests of conditional independence under model-X</h1>
+<h1>Anytime Valid Tests of Conditional Independence Under Model-X</h1>
 <p>This repository contains replication material and additional figures
 for the article</p>
-<p>Grünwald, Peter, Alexander Henzi, and Tyron Lardy. “Anytime Valid
+<p>Peter Grünwald, Alexander Henzi, and Tyron Lardy. “Anytime Valid
 Tests of Conditional Independence Under Model-X.” arXiv preprint <a href="https://arxiv.org/abs/2209.12637">arXiv:2209.12637</a> (2022).</p>
 <p>Code for the data application is given in the folder
-data_application. The file <em>simulation_functions.R</em> contains all
-functions used for the simulations in Section 4 of the article. The
-folder <em>simulation_1</em> contains the files to run the simulations
-for rejection rates under null and alternative hypothesis, and
-<em>simulation_2</em> the files for rejection rates under
+<code>data_application</code>. The file
+<code>simulation_functions.R</code> contains all functions used for the
+simulations in Section 4 of the article. The folder
+<code>simulation_1</code> contains the files to run the simulations for
+rejection rates under null and alternative hypothesis, and
+<code>simulation_2</code> the files for rejection rates under
 misspecification of the conditional distribution of X given Z. The code
 was run on a HPC cluster, with reproducible seed for the simulations,
-and the files <em>simulation_1.R</em> and <em>simulation_2.R</em>
-generate the output for a single run of the simulations, with parameters
-depending on the variable <em>id</em>. The file
-<em>simulation_tests.R</em> generates the plot of the ‘misspecification
-function’ in the article. Additional figures with different parameters
-for the simulations are contained in the folder
-<em>additional_figures</em>. The figures are generated with the file
-<em>simulation_plots.R</em>.</p>
-<p>To reproduce the simulations under the alternative (files in
-<em>simulation_</em>) (i) select the desired parameters in the file
-<em>simulation_1.R</em> (positive/negative correlations, dimension,
-penalization for RMLE) (ii) submit the batch job
-<em>sim_logistic_1_job.sh</em> on a HPC cluster with SLURM (adjust the
-email address, partition name etc. in the shell scripts and upload all
-required files, including <em>simulation_functions.R</em>); this will
-automatically collect the results in a file called
-“results_logistic_1.rda”, which (iv) is read in
-<em>simulations_alternative_plots_table.R</em> to reproduce the results.
-The same workflow applies to <em>simulation_2</em> and the file
-<em>simulations_robustness_plots.R</em> for generating the plots
-concerning robustness under violations of the Model-X assumptions.</p>
-<p>The table below gives an overview of the parameters in the files and
-the corresponding figures and table in the article and supplement.</p>
+and the files <code>simulation_1.R</code> and
+<code>simulation_2.R</code> generate the output for a single run of the
+simulations, with parameters depending on the variable <code>id</code>
+and other parameters that can be passed as command line arguments as
+explained in comments in the files.</p>
+<p>To reproduce all the simulations in the article and more (i) clone
+this repository on an HPC cluster (ii) adjust the email address,
+partition name, desired R module etc. in the files
+<code>sim_logistic_{1,2}_{array,collect,plot}.sh</code> in the
+directories <code>simulation_{1,2}/</code> (iii) make sure that the
+following R packages are installed for the R module previously
+specified: ggpubr, ggthemes, ldbounds, MASS and tidyverse<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> (iv) from the main
+directory, submit the batch job <code>figure_reproduction.sh</code>,
+i.e. <code>sbatch figure_reproduction.sh</code> (v) when the job
+finishes, the tables and figures can be found in the main directory. The
+default parameters for the figures in the article are
+<code>correlation = &quot;pos&quot;</code>,
+<code>not_penalize_rmle = FALSE</code>, and <code>q = 4</code>. For
+other values of these parameters
+(<code>correlation = &quot;negative_cor&quot;</code>,
+<code>not_penalize_rmle = TRUE</code>, or <code>q = 8</code>), the
+corresponding parameter is appended to the file name. For example, Table
+1 corresponds to <code>table_1_eps05.txt</code>, Figure 1 to
+<code>simulation_alternative_eps05.pdf</code>, Figure 2 to
+<code>simulation_group_sequential_eps05.pdf</code>, etc.</p>
+<p>To further experiment with simulations under the null and
+alternative, parameters can be manually adjusted in the bash file
+<code>figure_reproduction.sh</code>. For instance, the parameter
+combination <code>--export=q=8,corr=&quot;pos&quot;,pen=&quot;TRUE&quot;</code> runs
+simulations for the rejection rates with dimension <code>q = 8</code>,
+positive correlation, and no penalization of the parameter of interest
+in the running MLE method.</p>
+<p>For the reproduction of Figure 3, download the bike share data set
+from <a href="https://s3.amazonaws.com/capitalbikeshare-data/2011-capitalbikeshare-tripdata.zip" class="uri">https://s3.amazonaws.com/capitalbikeshare-data/2011-capitalbikeshare-tripdata.zip</a>
+and save it in the folder <code>data_application</code>. Executing the
+file data_application.R produces Figure 3 from the paper. Figure S2 can
+be reproduced with the file <code>simulation_2_tests.R</code>.</p>
+<p>The table below gives an overview of the parameters in the files for
+reproducing all figures and tables in the article and supplement.
+Figures for other parameter combinations are contained in the directory
+<code>additional_figures</code>.</p>
 <table>
+<colgroup>
+<col width="16%" />
+<col width="32%" />
+<col width="50%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th>Figure, Table</th>
+<th>Objects</th>
 <th>Files</th>
 <th>Parameters</th>
 </tr>
 </thead>
 <tbody>
+<tr class="odd">
+<td>Table 1</td>
+<td>simulation_1.R</td>
+<td><em>q = 4</em>, <em>correlation = “pos”</em>, <em>not_penalize_rmle
+= FALSE</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_1_plots_table.R</td>
+<td><em>eps = 0.05</em></td>
+</tr>
+<tr class="odd">
+<td>Figures 1, 2, S4</td>
+<td>simulation_1.R</td>
+<td><em>q = 4</em>, <em>correlation = “pos”</em>, <em>not_penalize_rmle
+= FALSE</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_1_plots_table.R</td>
+<td><em>eps = 0.05</em></td>
+</tr>
+<tr class="odd">
+<td>Figure 3</td>
+<td>data_application.R</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>Figure S1</td>
+<td>simulation_1.R</td>
+<td><em>q = 4</em>, <em>correlation = “pos”</em>, <em>not_penalize_rmle
+= FALSE</em></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>simulation_1_plots_table.R</td>
+<td><em>eps = 0</em></td>
+</tr>
+<tr class="even">
+<td>Figure S2</td>
+<td>simulation_2_tests.R</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>Figure S3</td>
+<td>simulation_2.R</td>
+<td><em>q = 4</em>, <em>correlation = “pos”</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_2_plots.R</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>Figures S5, S7</td>
+<td>simulation_1.R</td>
+<td><em>q = 8</em>, <em>correlation = “pos”</em>, <em>not_penalize_rmle
+= FALSE</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_1_plots_table.R</td>
+<td><em>eps = 0.05</em></td>
+</tr>
+<tr class="odd">
+<td>Figures S6, S8</td>
+<td>simulation_1.R</td>
+<td><em>q = 4</em>, <em>correlation = “negative_cor”</em>,
+<em>not_penalize_rmle = FALSE</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_1_plots_table.R</td>
+<td><em>eps = 0.05</em></td>
+</tr>
+<tr class="odd">
+<td>Figure S9</td>
+<td>simulation_2.R</td>
+<td><em>q = 8</em>, <em>correlation = “pos”</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_2_plots.R</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>Figure S10</td>
+<td>simulation_2.R</td>
+<td><em>q = 4</em>, <em>correlation = “negative_cor”</em></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>simulation_2_plots.R</td>
+<td>none</td>
+</tr>
 </tbody>
 </table>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>If you are having trouble installing tidyverse on the
+cluster, you can also opt for a combination of: dplyr, tidyr, and purrr.
+This should be manually changed in the files
+<code>simulation_1_plots_table.R</code> and
+<code>simulation_2_plots.R</code>.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
 </div>
 
 
